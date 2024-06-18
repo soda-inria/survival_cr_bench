@@ -4,3 +4,6 @@
 [submodule "Inverse-Weighted-Survival-Games"]
 	path = Inverse-Weighted-Survival-Games
 	url = git@github.com:Vincent-Maladiere/Inverse-Weighted-Survival-Games.git
+[submodule "Sumo-Net"]
+	path = Sumo-Net
+	url = git@github.com:Vincent-Maladiere/Sumo-Net.git
