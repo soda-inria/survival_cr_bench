@@ -7,3 +7,6 @@
 [submodule "Sumo-Net"]
 	path = Sumo-Net
 	url = git@github.com:Vincent-Maladiere/Sumo-Net.git
+[submodule "auton-survival"]
+	path = auton-survival
+	url = git@github.com:Vincent-Maladiere/auton-survival.git
