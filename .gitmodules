@@ -1,3 +1,6 @@
 [submodule "DeSurv"]
 	path = DeSurv
 	url = git@github.com:Vincent-Maladiere/DeSurv.git
+[submodule "Inverse-Weighted-Survival-Games"]
+	path = Inverse-Weighted-Survival-Games
+	url = git@github.com:Vincent-Maladiere/Inverse-Weighted-Survival-Games.git
