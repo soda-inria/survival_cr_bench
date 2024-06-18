@@ -1,0 +1,3 @@
+[submodule "DeSurv"]
+	path = DeSurv
+	url = git@github.com:Vincent-Maladiere/DeSurv.git
