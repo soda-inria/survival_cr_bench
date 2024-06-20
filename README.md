@@ -18,7 +18,7 @@ Installing this project will allow you to run the following models (table A):
 | PCHazard                |                 |             | [github.com/havakv/pycox](https://github.com/havakv/pycox)                                                                                                          | [Kvamme and Borgan (2019b)](https://arxiv.org/abs/1910.06724)                               |
 
 
-The following models were benchmarked on the authors' repository directly, by adding some snippets to their code on our forked version (table B):
+We also benchmark the following models, by adding some snippets to authors' code on our forked version (table B):
 
 
 | Name                    | Competing risks | Proper loss | Implementation                                                                                                                                                      | Reference                                                                                   |
@@ -29,7 +29,7 @@ The following models were benchmarked on the authors' repository directly, by ad
 | Sumo-Net                |                 | ✔️           | [github.com/MrHuff/Sumo-Net](https://github.com/MrHuff/Sumo-Net)                                                                                                    | [Rindt et al. (2022)](https://arxiv.org/abs/2103.14755)                                     |
 | DQS                     |                 | ✔️           | [ibm.github.io/dqs](ibm.github.io/dqs)                                                                                                                              | [Yanagisawa (2023)](https://arxiv.org/abs/2305.00621)                                       |
 
-This benchmark uses the following datasets (table C):
+We used the following datasets (table C):
 
 | Name              | Competing risks | Source                                                              | Need a license |
 |-------------------|-----------------|---------------------------------------------------------------------|----------------|
@@ -38,10 +38,10 @@ This benchmark uses the following datasets (table C):
 | Support           |                 | [pycox](https://github.com/havakv/pycox#datasets)                   |                |
 | SEER              | ✔️               | [NIH](https://soda-inria.github.io/hazardous/downloading_seer.html) | ✔️              |
 
-See the [setup section](####-1-3-download-the-seer-dataset) to download SEER.
+See the [setup section](#13-download-the-seer-dataset) to learn how to download SEER.
 
 
-### 1. Setup
+## 1. Setup
 
 #### 1.1 Clone the project
 
@@ -50,7 +50,7 @@ git clone git@github.com:soda-inria/survival_cr_bench.git
 cd survival_cr_bench/ 
 ```
 
-#### 1.2. Create a Python environment and install locally
+#### 1.2 Create a Python environment and install locally
 
 Create and activate an environment, e.g.:
 
@@ -80,9 +80,9 @@ SEER_PATH = </your/path/to/seer>
 ```
 
 
-### 2. Run the benchmarks
+## 2. Run the benchmarks
 
-#### 2.1. Benchmarks on this repository (table A)
+#### 2.1 Benchmarks on this repository (table A)
 
 Run `main.py`
 
@@ -104,7 +104,7 @@ cd dqs
 Then, read the corresponding README of these projects to run their benchmark.
 
 
-### 3. Plots display
+## 3. Display plots
 
 As we already provide the results from our benchmarks, you don't have to run them all in order to reproduce the figures.
 
