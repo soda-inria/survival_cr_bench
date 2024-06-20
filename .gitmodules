@@ -10,3 +10,6 @@
 [submodule "auton-survival"]
 	path = auton-survival
 	url = git@github.com:Vincent-Maladiere/auton-survival.git
+[submodule "dqs"]
+	path = dqs
+	url = git@github.com:Vincent-Maladiere/dqs.git
