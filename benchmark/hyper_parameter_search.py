@@ -44,6 +44,8 @@ gbmi_competing_loss = CumulativeIncidencePipeline(
         ("estimator", GBMultiIncidence(
             loss="competing_risks",
             show_progressbar=True,
+            n_iter=10,
+            n_iter_before_feedback=20,
         )),
     ]
 )
@@ -56,6 +58,8 @@ gbmi_log_loss = CumulativeIncidencePipeline(
                 loss="inll",
                 show_progressbar=True,
                 n_times=1,
+                n_iter=10,
+                n_iter_before_feedback=20,
             ),
         ),
     ]
@@ -79,9 +83,9 @@ survtrace = SurvTRACE(batch_size=128, optimizer__weight_decay=0, lr=1e-3, max_ep
 gbmi_param_grid = {
     "estimator__learning_rate": loguniform(0.01, 0.1),
     "estimator__max_depth": randint(2, 10),
-    "estimator__n_iter": randint(5, 50),
+    #"estimator__n_iter": randint(5, 50),
     # "estimator__n_times": randint(1, 5),
-    "estimator__n_iter_before_feedback": randint(5, 50),
+    #"estimator__n_iter_before_feedback": randint(5, 50),
 }
 
 survtrace_grid = {
@@ -135,6 +139,7 @@ DATASET_GRID = {
     "seer": {
         "n_samples": [None],
         "seed": list(range(3)),
+        "n_samples": [10_000],
     },  # , 100_000, 300_000],
     "metabric": {
         "n_samples": [None],
@@ -152,7 +157,7 @@ PATH_DAILY_SESSION = Path(datetime.now().strftime("%Y-%m-%d"))
 SEER_PATH = "../hazardous/data/seer_cancer_cardio_raw_data.txt"
 CHURN_PATH = "../hazardous/data/churn.csv"
 N_JOBS_CV = 1
-SEARCH_HP = False
+SEARCH_HP = True
 # N_ITER_CV = 10
 
 
@@ -311,9 +316,9 @@ def run_estimator(estimator_name, data_bunch, dataset_name, dataset_params):
         param_grid,
         cv=cv,
         return_train_score=False,
-        refit=True,
+        refit=False,
         n_jobs=1,
-        n_iter=10,
+        n_iter=3,
     )
     hp_search.fit(
         X,
@@ -323,7 +328,7 @@ def run_estimator(estimator_name, data_bunch, dataset_name, dataset_params):
     best_params = hp_search.best_params_
 
     # With refit=True, the best estimator is already fitted on X, y.
-    best_estimator = hp_search.best_estimator_
+    #best_estimator = hp_search.best_estimator_
 
     cols = [
         "mean_test_score",
@@ -338,7 +343,7 @@ def run_estimator(estimator_name, data_bunch, dataset_name, dataset_params):
     best_results["estimator_name"] = estimator_name
 
     # hack for benchmarks
-    best_estimator.y_train = y
+    #best_estimator.y_train = y
 
     str_params = [str(v) for v in dataset_params.values()]
     str_params = "_".join([estimator_name, *str_params])
@@ -346,8 +351,8 @@ def run_estimator(estimator_name, data_bunch, dataset_name, dataset_params):
     path_profile.mkdir(parents=True, exist_ok=True)
 
     json.dump(best_params, open(path_profile / "best_params.json", "w"))
-    dump(best_estimator, path_profile / "best_estimator.joblib")
-    json.dump(best_results, open(path_profile / "cv_results.json", "w"))
+    # dump(best_estimator, path_profile / "best_estimator.joblib")
+    # json.dump(best_results, open(path_profile / "cv_results.json", "w"))
     json.dump(dataset_params, open(path_profile / "dataset_params.json", "w"))
 
 

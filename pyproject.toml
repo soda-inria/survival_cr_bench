@@ -22,6 +22,8 @@ dependencies = [
     # lifelines.KaplanMeierFitter imports lifelines.datasets which has an
     # undeclared runtime dependency on setuptools.
     "setuptools",
+    "pycox",
+    "scikit-survival",
 ]
 dynamic = ["version"]
 

@@ -13,7 +13,7 @@ from hazardous.metrics._brier_score import (
 )
 from hazardous.metrics._concordance import concordance_index_ipcw
 from hazardous.utils import get_n_events
-from display_utils import (
+from benchmark.display.display_utils import (
     aggregate_result,
     get_estimator,
     load_dataset,

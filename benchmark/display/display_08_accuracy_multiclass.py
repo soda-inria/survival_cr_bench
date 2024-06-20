@@ -8,7 +8,7 @@ import seaborn as sns
 
 from hazardous._aalen_johansen import AalenJohansenEstimator
 from hazardous.utils import get_n_events
-from display_utils import (
+from benchmark.display.display_utils import (
     aggregate_result,
     get_estimator,
     load_dataset,
