@@ -1,3 +1,5 @@
+import os
+from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 from pycox.datasets import support, metabric
 from hazardous.data._seer import (
@@ -7,33 +9,35 @@ from hazardous.data._seer import (
 )
 from hazardous.data._competing_weibull import make_synthetic_competing_weibull
 
-from config import SEER_PATH
-
-SEED = 0
+#PATH_SEER = os.getenv("PATH_SEER")
+PATH_SEER = "../hazardous/data/seer_cancer_cardio_raw_data.txt"
+PATH_CHURN = "../hazardous/data/churn.csv"
 
 
 def get_split_seer(dataset_params):
-    data_bunch = load_seer(
-        SEER_PATH,
+    bunch = load_seer(
+        PATH_SEER,
         survtrace_preprocessing=True,
         return_X_y=False,
     )
-    X, y = data_bunch.X, data_bunch.y
+    X, y = bunch.X, bunch.y
     column_names = CATEGORICAL_COLUMN_NAMES + NUMERIC_COLUMN_NAMES
     X = X[column_names]
 
-    seed = dataset_params.get("seed", None) or SEED
-
-    return split(X, y, seed)
+    return split(X, y, dataset_params)
 
 
 def get_split_synthetic(dataset_params):
-    data_bunch = make_synthetic_competing_weibull(**dataset_params)
-    X, y = data_bunch.X, data_bunch.y
+    bunch = make_synthetic_competing_weibull(**dataset_params)
+    X, y = bunch.X, bunch.y
 
-    seed = dataset_params.get("seed", None) or SEED
-
-    return split(X, y, seed)
+    return split(
+        X,
+        y,
+        dataset_params,
+        shape_censoring=bunch.shape_censoring,
+        scale_censoring=bunch.scale_censoring,
+    )
 
 
 def get_split_metabric(dataset_params):
@@ -66,9 +70,9 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
     return split(X, y, dataset_params)
 
 
-def split(X, y, dataset_params):
+def split(X, y, dataset_params, **kwargs):
 
-    seed = dataset_params.get("seed", None) or SEED
+    seed = dataset_params["seed"]
 
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -89,7 +93,13 @@ def split(X, y, dataset_params):
             random_state=seed,
         )
 
-    return X_train, X_test, y_train, y_test
+    return Bunch(
+        X_train=X_train,
+        X_test=X_test,
+        y_train=y_train,
+        y_test=y_test,
+        **kwargs,
+    )
 
 
 LOAD_DATASET_FUNCS = {
