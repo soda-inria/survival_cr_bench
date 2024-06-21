@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 from lifelines import AalenJohansenFitter
 
-from display_utils import aggregate_result, get_estimator, make_query, make_time_grid
+from benchmark.display.display_utils import aggregate_result, get_estimator, make_query, make_time_grid
 from hazardous.data._competing_weibull import make_synthetic_competing_weibull
 
 sns.set_style(style="white")

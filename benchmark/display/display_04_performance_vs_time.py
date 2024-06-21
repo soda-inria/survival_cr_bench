@@ -6,7 +6,7 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 
 from hazardous.metrics._brier_score import integrated_brier_score_incidence
-from display_utils import (
+from benchmark.display.display_utils import (
     aggregate_result,
     make_time_grid,
     make_query,

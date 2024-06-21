@@ -3,7 +3,7 @@ from pathlib import Path
 import seaborn as sns
 from matplotlib import pyplot as plt
 
-from display_utils import aggregate_result, make_query
+from benchmark.display.display_utils import aggregate_result, make_query
 
 
 sns.set_style(style="white")

@@ -12,7 +12,7 @@ from pycox.datasets import support, metabric
 from hazardous.data._competing_weibull import make_synthetic_competing_weibull
 from hazardous.data._seer import load_seer
 
-from main import SEER_PATH, SEED
+from benchmark.hyper_parameter_search import SEER_PATH, SEED
 
 sns.set_style(
     style="white",
