@@ -24,6 +24,7 @@ dependencies = [
     "setuptools",
     "pycox",
     "scikit-survival",
+    "rpy2", # TODO: install R and install comprsk
 ]
 dynamic = ["version"]
 

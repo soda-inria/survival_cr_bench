@@ -7,7 +7,6 @@ from hazardous.utils import (
     CumulativeIncidencePipeline,
 )
 from hazardous._gb_multi_incidence import GBMultiIncidence
-from hazardous._fine_and_gray import FineGrayEstimator
 from hazardous._aalen_johansen import AalenJohansenEstimator
 
 
@@ -64,6 +63,9 @@ def init_aalen_johansen(calculate_variance=False, seed=0):
 
 
 def init_fine_and_gray():
+    # This import is shielded inside a function call because R and cmprsk need
+    # to be installed to import FineGrayEstimator.
+    from hazardous._fine_and_gray import FineGrayEstimator
     return CumulativeIncidencePipeline(
         [("encoder", SurvFeatureEncoder()), ("estimator", FineGrayEstimator())]
     )

@@ -45,7 +45,7 @@ DATASET_GRID = {
         "seed": list(range(5)),
     },
     "seer": {
-        "n_samples": [None],
+        "n_samples": [1000],
         "seed": list(range(5)),
     },
     "metabric": {
@@ -61,10 +61,11 @@ DATASET_GRID = {
 PATH_HP_SEARCH = Path("./best_hyper_parameters")
 
 SEARCH_HP = True
-N_ITER_CV = 10
+N_ITER_OUTER_LOOP_CV = 10
+N_ITER_INNER_LOOP_CV = 5
 
 
-def run_all_dataset_params(dataset_name, model_name):
+def search_all_dataset_params(dataset_name, model_name):
 
     for dataset_params in ParameterGrid(DATASET_GRID[dataset_name]):
         search_hp(dataset_name, dataset_params, model_name)
@@ -77,13 +78,16 @@ def search_hp(dataset_name, dataset_params, model_name):
     bunch = load_data_func(dataset_params)
     X_train, y_train = bunch.X_train, bunch.y_train
 
-    model = INIT_MODEL_FUNCS[model_name]
+    model_init_func = INIT_MODEL_FUNCS[model_name]
+    model = model_init_func()
     param_grid = HYPER_PARAMS_GRID[model_name]
 
     if model_name == "survtrace" or not SEARCH_HP:
+        # Used when nested CV is too expensive.
+        # Equivalent of setting N_ITER_INNER_LOOP_CV = 1.
         cv = SurvStratifiedSingleSplit()
     else:
-        cv = SurvStratifiedShuffleSplit(n_splits=5)
+        cv = SurvStratifiedShuffleSplit(n_splits=N_ITER_INNER_LOOP_CV)
 
     if not SEARCH_HP:
         param_grid = {}
@@ -95,7 +99,7 @@ def search_hp(dataset_name, dataset_params, model_name):
         return_train_score=False,
         refit=False,
         n_jobs=1,
-        n_iter=N_ITER_CV,
+        n_iter=N_ITER_OUTER_LOOP_CV,
     ).fit(X_train, y_train)
 
     best_params = hp_search.best_params_
@@ -111,6 +115,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 
 # %%
-run_all_dataset_params("seer", "gbmi_log_loss")
+if __name__ == "__main__":
+    search_all_dataset_params("seer", "gbmi")
 
 # %%
