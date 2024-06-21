@@ -1,117 +1,106 @@
 """
 This file performs the following operations:
 
-1. Fetch the best hyper parameters for the selected models
-2. Fit models on the same train set they have been tuned on
-3. Evaluate model performance on the matching test set
-4. Write performance in a single score file
+1. Fetch data_params and model_params from the best_hyper_parameters/ folder
+2. Load the train and test set using the dataset params used for hp searching
+3. Fit the model using the train set
+3. Evaluate the model performance on the test set
+4. Write performance in scores/agg_scores.json
 
-Here are the schemas of the data we collect.
+Here are the schemas of the data we collect:
 
-Raw_score
-=========
-{
-    n_events
-    model_name
-    dataset_name
-    seed
-    n_rows
-    n_cols
-    censoring_rate
-    fit_time
-    predict_time
-    ibs
-    censlog
+raw_scores
+==========
+dataset_name__model_name: {
+    is_competing_risk: bool
+    n_events: int
+    model_name: str
+    dataset_name: str
+    seed: int
+    n_rows: int
+    n_cols: int
+    censoring_rate: float
+    fit_time: float
+    predict_time: float
+    censlog: float
     accuracy_in_time: {
-        time_quantiles: []
-        accuracy: []
+        time_quantiles: [float]
+        accuracy: [float]
     },
     event_specific_brier_scores: [
         {
-             event
-             time: []
-             brier_score: []
+            event: int
+            time: [float]
+            brier_score: [float]
         }
     ]
     event_specific_ibs: [
         {
-            event:
-            ibs:
+            event: int
+            ibs: float
         }
     ]
     event_specific_c_index: [
         {
-            event
-            time_quantile: []
-            c_index: []
+            event: int
+            time_quantile: [float]
+            c_index: [float]
         }
     ]
 }
 
 
-Next, we aggregate on the seed and split between competing and survival.
-This is the data we will be using for our plots.
+Next, we aggregate across the seeds to compute the different mean and std.
+Some values can be None when is_competing_risk is either True or False.
 
-Competing_risk
-==============
-{
-    model_name
-    dataset_name
-    n_rows
-    n_cols
-    censoring_rate
-    mean_fit_time
-    std_fit_time
-    mean_predict_time
-    std_predict_time
-    mean_ibs
-    std_ibs
-    accuracy_in_time: {
-        time_quantiles: []
-        mean_accuracy: []
-        std_accuracy: []
+agg_scores
+==========
+dataset_name: {
+    model_name: {
+        is_competing_risk: bool
+        model_name: str
+        dataset_name: str
+        n_rows: int
+        n_cols: int
+        censoring_rate: float
+        mean_fit_time: float
+        std_fit_time: float
+        mean_predict_time: float
+        std_predict_time: float
+        mean_ibs: float
+        std_ibs: float
+        mean_cenlog: float (None if is_competing_risk = True)
+        std_cenlog: float (None if is_competing_risk = True)
+        accuracy_in_time: {
+            time_quantiles: [float]
+            mean_accuracy: [float]
+            std_accuracy: [float]
+        }
+        event_specific_brier_scores: [
+            {
+                event: int
+                time: [float]
+                mean_brier_score: [float]
+                std_brier_score: [float]
+            }
+        ]
+        event_specific_ibs: [
+            {
+                event: int
+                mean_ibs: float
+                std_ibs: float
+            }
+        ]
+        c_index: [
+            {
+                time_quantile: float
+                event: [int]
+                mean_c_index: [int]
+                std_c_index: [int]
+            }
+        ]
     }
-    event_specific_brier_scores: [
-        {
-            event
-            time: []
-            mean_brier_score: []
-            std_brier_score: []
-        }
-    ]
-    event_specific_ibs: [
-        {
-            event
-            mean_ibs
-            std_ibs
-        }
-    ]
-    c_index: [
-        {
-            time_quantile
-            event: []
-            mean_c_index: []
-            std_c_index: []
-        }
-    ]
 }
-
-Survival
-========
-{
-    model_name
-    ...
-    mean_ibs
-    std_ibs
-    mean_cenlog
-    std_cenlog
-    c_index: {
-        time_quantile
-        mean_c_index: []
-        std_c_index: []
-    },
-}
-
 """
 # %%
 from time import time
