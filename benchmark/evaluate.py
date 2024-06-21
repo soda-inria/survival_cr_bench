@@ -138,7 +138,7 @@ def evaluate_all_models():
         bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
         X_train, y_train = bunch.X_train, bunch.y_train
 
-        model = INIT_MODEL_FUNCS[model_name](model_params)
+        model = INIT_MODEL_FUNCS[model_name](**model_params)
 
         print(f"start fitting {model_name} on {dataset_name}")
         tic = time()
@@ -455,3 +455,5 @@ def standalone_aggregate():
 # %%
 if __name__ == "__main__":
     evaluate_all_models()
+
+# %%

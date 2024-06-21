@@ -21,11 +21,10 @@ def init_gbmi(show_progressbar=True, n_times=1, loss="inll", **model_params):
                     loss=loss,
                     show_progressbar=show_progressbar,
                     n_times=n_times,
-                    **model_params,
                 ),
             ),
         ]
-    )
+    ).set_params(**model_params)
 
 
 def init_survtrace(lr=1e-3, batch_size=128, max_epochs=20, **model_params):
