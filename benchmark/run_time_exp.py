@@ -5,6 +5,9 @@ import numpy as np
 from time import time
 from collections import defaultdict
 from sksurv.ensemble import RandomSurvivalForest 
+from sklearn.model_selection import train_test_split
+from pycox.datasets import metabric, support
+from sksurv.metrics import integrated_brier_score, concordance_index_ipcw
 
 from hazardous._deep_hit import _DeepHit
 from hazardous.survtrace._model import SurvTRACE
@@ -83,11 +86,8 @@ def main():
     result.to_csv("timing.csv", index=False)
 
 
-def run_deephit():    
-    from sklearn.model_selection import train_test_split
-    from pycox.datasets import metabric, support
-    from sksurv.metrics import integrated_brier_score, concordance_index_ipcw
-
+def run_deephit():  
+      
     df_metabric = metabric.read_df()
     df_support = support.read_df()
     

@@ -45,8 +45,8 @@ DATASET_GRID = {
         "seed": list(range(5)),
     },
     "seer": {
-        "n_samples": [1000],
-        "seed": list(range(5)),
+        "n_samples": [ None],
+        "seed": list(range(5))[1:],
     },
     "metabric": {
         "n_samples": [None],
@@ -112,10 +112,3 @@ def search_hp(dataset_name, dataset_params, model_name):
 
     json.dump(best_params, open(path_profile / "best_params.json", "w"))
     json.dump(dataset_params, open(path_profile / "dataset_params.json", "w"))
-
-
-# %%
-if __name__ == "__main__":
-    search_all_dataset_params("seer", "gbmi")
-
-# %%

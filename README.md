@@ -84,15 +84,30 @@ SEER_PATH = </your/path/to/seer>
 
 #### 2.1 Benchmarks on this repository (table A)
 
-Run `main.py`
+###### 2.1.1 Running the hyperparameter search
 
-```shell
-python benchmark/main.py
+We provide the best parameters that we found during our hyper parameters search.
+However, if you want to re-run to find your best params given a dataset, you can 
+run the following function given the model and the dataset that you want to study.
+For example:
+
+
+```python
+search_all_dataset_params(dataset_name="seer", model_name="gbmi")
 ```
 
-TODO: add options to choose models and dataset
+This will create a folder with two files writing the best parameters for a given model 
+and its grid search and a given dataset. 
 
-TODO: add the results
+###### 2.1.2 Fitting and creating the results
+
+You can run the 
+```shell 
+python evaluate.py
+```
+file, it will fit all models for given parameters.
+For each seed, it will train a model and predict on the test set and record the different
+metrics. Doing so, it allows us to accelerate the displays. 
 
 #### 2.2 Benchmarks on authors' repository (table B)
 

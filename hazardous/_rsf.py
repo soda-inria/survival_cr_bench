@@ -1,24 +1,28 @@
 import numpy as np
 import pandas as pd
-from rpy2.robjects.packages import importr
 from scipy.interpolate import interp1d
 from sklearn.base import BaseEstimator, check_is_fitted
 from sklearn.utils import check_random_state
+from rpy2.robjects.packages import importr
+from rpy2.robjects import Formula
+from rpy2.robjects import r
 
 from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
-    integrated_brier_score_incidence_oracle,
 )
 from hazardous.utils import check_y_survival
 from hazardous.r_utils import *
 
-r_cmprsk = importr("cmprsk")
+rfs = importr("randomForestSRC")
+surv = importr("survival")
+Surv = surv.Surv
+datasets = importr("datasets")
 
 
-class FineGrayEstimator(BaseEstimator):
-    """Fine and Gray competing risk estimator.
+class RSFEstimator(BaseEstimator):
+    """RSF estimator for competing risks.
 
-    This estimator is a rpy2 wrapper around the cmprsk R package.
+    This estimator is a rpy2 wrapper around the randomForestSRC R package.
 
     Parameters
     ----------
@@ -36,7 +40,7 @@ class FineGrayEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_fit_samples=10_000,
+        max_fit_samples=100_000,
         random_state=None,
     ):
         self.max_fit_samples = max_fit_samples
@@ -54,7 +58,7 @@ class FineGrayEstimator(BaseEstimator):
 
         Returns
         -------
-        self : fitted instance of FineGrayEstimator
+        self : fitted instance of RSFEstimator
         """
         X = self._check_input(X, y)
 
@@ -67,34 +71,21 @@ class FineGrayEstimator(BaseEstimator):
             )
             X, y = X.iloc[sample_indices], y.iloc[sample_indices]
 
-        self._check_feature_names(X, reset=True)
-        self._check_n_features(X, reset=True)
-
         event, duration = check_y_survival(y)
-        self.times_ = np.unique(duration[event > 0])
         self.event_ids_ = np.array(sorted(list(set([0]) | set(event))))
 
-        event, duration = r_vector(event), r_vector(duration)
+        df = pd.concat([X, y], axis=1)
+        cols = df.columns.to_list()
+        names = " + ".join(cols)
+        
+        r_df = r_dataframe(df)
 
-        X = r_dataframe(X)
 
-        self.r_crr_results_ = []
-        self.coefs_ = []
-        for event_id in self.event_ids_[1:]:
-            r_crr_result_ = r_cmprsk.crr(
-                duration,
-                event,
-                X,
-                failcode=int(event_id),
-                cencode=0,
-            )
-
-            parsed = parse_r_list(r_crr_result_)
-            coef_ = np.array(parsed["coef"])
-
-            self.r_crr_results_.append(r_crr_result_)
-            self.coefs_.append(coef_)
-
+        rsf_object = rfs.rfsrc(
+            Formula(f"Surv(duration, event) ~ {names}"), data=r_df, seed=self.random_state)
+        self.r_parsed = rsf_object
+        self.parsed = parse_r_list(rsf_object)
+        self.times_ = np.array(self.parsed["time.interest"])
         self.y_train = y
         return self
 
@@ -116,49 +107,54 @@ class FineGrayEstimator(BaseEstimator):
         y_pred : ndarray of shape (n_samples, n_times)
             The conditional cumulative cumulative incidence at times.
         """
-        check_is_fitted(self, "r_crr_results_")
+        check_is_fitted(self, "parsed")
+        
+        r_df = r_dataframe(X)
 
-        self._check_feature_names(X, reset=False)
-        self._check_n_features(X, reset=False)
 
-        X = r_matrix(X)
+        # predict
+        object_pred_r = r.predict(self.r_parsed, r_df)
 
+        object_pred = parse_r_list(object_pred_r)
+        cif_pred = np.array(object_pred["cif"])
+
+        # make the same format as SurvivalBoost, 
+        # where the first column is the survival function
+        survival_pred = 1 - cif_pred.sum(axis=2)
+        survival_pred = survival_pred[:, :, None]
+        y_pred =np.concatenate((survival_pred, cif_pred), axis=2)
+        y_pred = y_pred.swapaxes(1, 2)
+        
         all_event_y_pred = []
-        for event_id in self.event_ids_[1:]:
-            # Interpolate each sample
-            y_pred = r_cmprsk.predict_crr(
-                self.r_crr_results_[event_id - 1],
-                X,
-            )
-            y_pred = np_matrix(y_pred)
-            times_event = np.unique(
-                self.y_train["duration"][self.y_train["event"] == event_id]
-            )
-            y_pred = y_pred[:, 1:].T  # shape (n_samples, n_unique_times)
 
-            y_pred_at_0 = np.zeros((y_pred.shape[0], 1))
-            y_pred_t_max = y_pred[:, [-1]]
-            y_pred = np.hstack([y_pred_at_0, y_pred, y_pred_t_max])
+        for event in range(y_pred.shape[1]):
+            event_pred = y_pred[:, event, :]
+            if event == 0:
+                y_pred_at_0 = np.ones((event_pred.shape[0], 1))
+            else:
+                y_pred_at_0 = np.zeros((event_pred.shape[0], 1))
+        
+            y_pred_t_max = event_pred[:, [-1]]
+            event_pred = np.hstack([y_pred_at_0, event_pred, y_pred_t_max])
 
-            times_event = np.hstack([[0], times_event, [np.inf]])
 
             if times is None:
                 times = self.times_
+            
+            times_event = np.hstack([[0], times, [np.inf]])
 
             all_y_pred = []
-            for idx in range(y_pred.shape[0]):
+            for idx in range(event_pred.shape[0]):
                 y_pred_ = interp1d(
                     x=times_event,
-                    y=y_pred[idx, :],
+                    y=event_pred[idx, :],
                     kind="linear",
                 )(times)
                 all_y_pred.append(y_pred_)
 
-            y_pred = np.vstack(all_y_pred)
-            all_event_y_pred.append(y_pred)
-
-        surv_curve = 1 - np.sum(all_event_y_pred, axis=0)
-        all_event_y_pred = [surv_curve] + all_event_y_pred
+            event_pred = np.vstack(all_y_pred)
+            all_event_y_pred.append(event_pred)
+        
         all_event_y_pred = np.asarray(all_event_y_pred)
         return all_event_y_pred
 
@@ -182,7 +178,7 @@ class FineGrayEstimator(BaseEstimator):
         X = X.loc[:, stds > 0]
         return X
 
-    def score(self, X, y, shape_censoring=None, scale_censoring=None):
+    def score(self, X, y):
         """Return
 
         #TODO: implement time integrated NLL.
@@ -192,25 +188,12 @@ class FineGrayEstimator(BaseEstimator):
 
         for idx, event_id in enumerate(self.event_ids_[1:]):
             predicted_curves_for_event = predicted_curves[idx]
-            if scale_censoring is not None and shape_censoring is not None:
-                ibs_event = integrated_brier_score_incidence_oracle(
-                    y_train=self.y_train,
-                    y_test=y,
-                    y_pred=predicted_curves_for_event,
-                    times=self.times_,
-                    shape_censoring=shape_censoring,
-                    scale_censoring=scale_censoring,
-                    event_of_interest=event_id,
-                )
-
-            else:
-                ibs_event = integrated_brier_score_incidence(
-                    y_train=self.y_train,
-                    y_test=y,
-                    y_pred=predicted_curves_for_event,
-                    times=self.times_,
-                    event_of_interest=event_id,
-                )
-
+            ibs_event = integrated_brier_score_incidence(
+                y_train=self.y_train,
+                y_test=y,
+                y_pred=predicted_curves_for_event,
+                times=self.times_,
+                event_of_interest=event_id,
+            )
             ibs_events.append(ibs_event)
         return -np.mean(ibs_events)
