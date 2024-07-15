@@ -23,11 +23,12 @@ def get_split_seer(dataset_params):
     X, y = bunch.X, bunch.y
     column_names = CATEGORICAL_COLUMN_NAMES + NUMERIC_COLUMN_NAMES
     X = X[column_names]
-
-    return split(X, y, dataset_params)
+    max_samples = dataset_params.pop("max_samples")
+    return split(X, y, dataset_params, max_samples)
 
 
 def get_split_synthetic(dataset_params):
+    max_samples = dataset_params.pop("max_samples")
     bunch = make_synthetic_competing_weibull(**dataset_params)
     X, y = bunch.X, bunch.y
 
@@ -35,6 +36,7 @@ def get_split_synthetic(dataset_params):
         X,
         y,
         dataset_params,
+        max_samples,
         shape_censoring=bunch.shape_censoring,
         scale_censoring=bunch.scale_censoring,
     )
@@ -66,11 +68,12 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
     X[numerical_features] = X[numerical_features].astype("float64")
 
     y = df[["duration", "event"]]
+    max_samples = dataset_params.pop("max_samples")
 
-    return split(X, y, dataset_params)
+    return split(X, y, dataset_params, max_samples)
 
 
-def split(X, y, dataset_params, **kwargs):
+def split(X, y, dataset_params, max_samples=None, **kwargs):
     
     if "random_state" in dataset_params:
         random_state = dataset_params["random_state"]
@@ -87,12 +90,12 @@ def split(X, y, dataset_params, **kwargs):
     )
 
     # Used by models with scaling issues during training.
-    if dataset_params["max_samples"] is not None:
-        if X_train.shape[0] > dataset_params["max_samples"]:
+    if max_samples is not None:
+        if X_train.shape[0] > max_samples:
             X_train, _, y_train, _ = train_test_split(
                 X_train,
                 y_train,
-                train_size=dataset_params["max_samples"],
+                train_size=max_samples,
                 stratify=y_train["event"],
                 random_state=0,
             )
