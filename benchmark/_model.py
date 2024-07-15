@@ -69,6 +69,13 @@ def init_fine_and_gray():
         [("encoder", SurvFeatureEncoder()), ("estimator", FineGrayEstimator())]
     )
 
+def init_random_survival_forest(**model_params):
+    # This import is shielded inside a function call because R and cmprsk need
+    # to be installed to import FineGrayEstimator.
+    from hazardous._rsf import RSFEstimator
+    return CumulativeIncidencePipeline(
+        [("encoder", SurvFeatureEncoder()), ("estimator", RSFEstimator(**model_params))]
+    )
 
 INIT_MODEL_FUNCS = {
     "gbmi": init_gbmi,
@@ -76,6 +83,6 @@ INIT_MODEL_FUNCS = {
     "deephit": init_deephit,
     "fine_and_gray": init_fine_and_gray,
     "aalen_johansen": init_aalen_johansen,
+    "random_survival_forest": init_random_survival_forest,
     # TODO: "init_pchazard"
-    # TODO: "init_random_survival_forest"
 }

@@ -71,27 +71,31 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
 
 
 def split(X, y, dataset_params, **kwargs):
-
-    seed = dataset_params["seed"]
-
+    
+    if "random_state" in dataset_params:
+        random_state = dataset_params["random_state"]
+    else:
+        # for the HP search to be faster
+        random_state = 0
+    
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
         test_size=0.3,
         stratify=y["event"],
-        random_state=seed,
+        random_state=random_state,
     )
 
     # Used by models with scaling issues during training.
-    if dataset_params["n_samples"] is not None:
-        n_samples = min(dataset_params["n_samples"], X_train.shape[0])
-        X_train, _, y_train, _ = train_test_split(
-            X_train,
-            y_train,
-            train_size=n_samples,
-            stratify=y_train["event"],
-            random_state=seed,
-        )
+    if dataset_params["max_samples"] is not None:
+        if X_train.shape[0] > dataset_params["max_samples"]:
+            X_train, _, y_train, _ = train_test_split(
+                X_train,
+                y_train,
+                train_size=dataset_params["max_samples"],
+                stratify=y_train["event"],
+                random_state=0,
+            )
 
     return Bunch(
         X_train=X_train,
@@ -104,7 +108,7 @@ def split(X, y, dataset_params, **kwargs):
 
 LOAD_DATASET_FUNCS = {
     "seer": get_split_seer,
-    "synthetic": get_split_synthetic,
+    "weibull": get_split_synthetic,
     "support": get_split_support,
     "metabric": get_split_metabric,
 }

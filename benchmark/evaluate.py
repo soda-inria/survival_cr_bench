@@ -1,107 +1,3 @@
-"""
-This file performs the following operations:
-
-1. Fetch data_params and model_params from the best_hyper_parameters/ folder
-2. Load the train and test set using the dataset params used for hp searching
-3. Fit the model using the train set
-3. Evaluate the model performance on the test set
-4. Write performance in scores/agg_scores.json
-
-Here are the schemas of the data we collect:
-
-raw_scores
-==========
-dataset_name__model_name: {
-    is_competing_risk: bool
-    n_events: int
-    model_name: str
-    dataset_name: str
-    seed: int
-    n_rows: int
-    n_cols: int
-    censoring_rate: float
-    fit_time: float
-    predict_time: float
-    censlog: float
-    accuracy_in_time: {
-        time_quantiles: [float]
-        accuracy: [float]
-    },
-    event_specific_brier_scores: [
-        {
-            event: int
-            time: [float]
-            brier_score: [float]
-        }
-    ]
-    event_specific_ibs: [
-        {
-            event: int
-            ibs: float
-        }
-    ]
-    event_specific_c_index: [
-        {
-            event: int
-            time_quantile: [float]
-            c_index: [float]
-        }
-    ]
-}
-
-
-Next, we aggregate across the seeds to compute the different mean and std.
-Some values can be None when is_competing_risk is either True or False.
-
-agg_scores
-==========
-dataset_name: {
-    model_name: {
-        is_competing_risk: bool
-        model_name: str
-        dataset_name: str
-        n_rows: int
-        n_cols: int
-        censoring_rate: float
-        mean_fit_time: float
-        std_fit_time: float
-        mean_predict_time: float
-        std_predict_time: float
-        mean_ibs: float
-        std_ibs: float
-        mean_cenlog: float (None if is_competing_risk = True)
-        std_cenlog: float (None if is_competing_risk = True)
-        accuracy_in_time: {
-            time_quantiles: [float]
-            mean_accuracy: [float]
-            std_accuracy: [float]
-        }
-        event_specific_brier_scores: [
-            {
-                event: int
-                time: [float]
-                mean_brier_score: [float]
-                std_brier_score: [float]
-            }
-        ]
-        event_specific_ibs: [
-            {
-                event: int
-                mean_ibs: float
-                std_ibs: float
-            }
-        ]
-        c_index: [
-            {
-                time_quantile: float
-                event: [int]
-                mean_c_index: [int]
-                std_c_index: [int]
-            }
-        ]
-    }
-}
-"""
 # %%
 from time import time
 import json
@@ -130,54 +26,70 @@ def evaluate_all_models():
 
     all_scores = defaultdict(list)
 
-    all_dataset_params, all_model_params = get_params()
+    all_params = get_params()
 
-    for (dataset_name, dataset_params), (model_name, model_params) in zip(
-        all_dataset_params, all_model_params
-    ):
-        bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
-        X_train, y_train = bunch.X_train, bunch.y_train
+    for (dataset_name, dataset_params, model_name, model_params) in all_params:
+        for seed in range(5):
+            dataset_params["random_state"] = seed
+            model_params["random_state"] = seed
+            
+            bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
+            X_train, y_train = bunch.X_train, bunch.y_train
 
-        model = INIT_MODEL_FUNCS[model_name](**model_params)
-
-        print(f"start fitting {model_name} on {dataset_name}")
-        tic = time()
-        model = model.fit(X_train, y_train)
-        toc = time()
-        fit_time = round(toc - tic, 2)
-
-        scores = evaluate(
-            model, bunch, dataset_name, dataset_params, model_name
-        )
-        scores["fit_time"] = fit_time
+            model = INIT_MODEL_FUNCS[model_name](**model_params)
+            print(dataset_params)
+            print(model)
+            print(model_params)
+            print(f"start fitting {model_name} on {dataset_name}")
+            tic = time()
+            model = model.fit(X_train, y_train)
+            toc = time()
+            print(f"fitting {model_name} on {dataset_name} done")
+            fit_time = round(toc - tic, 2)
+            print("start evaluating")
+            scores = evaluate(
+                model, bunch, dataset_name, dataset_params, model_name
+            )
+            scores["fit_time"] = fit_time
+            print(f"evaluating {model_name} on {dataset_name} done")
+            
+            all_scores[f"{dataset_name}__{model_name}"].append(scores)
+            #import ipdb; ipdb.set_trace()
+            json.dump(all_scores, open("./scores/raw_scores.json", "w"))
         
-        all_scores[f"{dataset_name}__{model_name}"].append(scores)
-        json.dump(all_scores, open("./scores/raw_scores.json", "w"))
-    
-    agg_scores = aggregate_scores(all_scores)
-    json.dump(agg_scores, open("./scores/agg_scores.json", "w"))
+        agg_scores = aggregate_scores(all_scores)
+        json.dump(agg_scores, open("./scores/agg_scores.json", "w"))
 
 
 def get_params():
+    
     """Fetch and accumulate the data and models params.
     """
+    
     all_model_params, all_dataset_params = [], []
+    all_params = []
 
-    for ds_path in PATH_HP_SEARCH.glob("*"):
-        dataset_name = ds_path.name
-        for model_path in ds_path.glob("*"):
-            best_model_params = json.load(open(model_path / "best_params.json"))
-            dataset_params = json.load(open(model_path / "dataset_params.json"))
-            model_name = best_model_params.pop("model_name")
-            all_dataset_params.append([dataset_name, dataset_params])
-            all_model_params.append([model_name, best_model_params])
+    for md_path in PATH_HP_SEARCH.glob("*"):
+        model_name = md_path.name
+        for ds_path in md_path.glob("*"):
+            
+            dataset_name = ds_path.name    
+            for model_path in ds_path.glob("*"):
+                
+                best_model_params = json.load(open(model_path / "best_params.json"))
+                dataset_params = json.load(open(model_path / "dataset_params.json"))
+                model_name = best_model_params.pop("model_name")
+                all_dataset_params.append([dataset_name, dataset_params])
+                all_model_params.append([model_name, best_model_params])
+                all_params.append([dataset_name, dataset_params, model_name, best_model_params])
 
-    return all_dataset_params, all_model_params
+    return all_params
 
 
 def evaluate(model, bunch, dataset_name, dataset_params, model_name):
     """Evaluate a model against its test set.
     """
+    
     n_events = np.unique(bunch.y_train["event"]).shape[0] - 1
     is_competing_risk = n_events > 1
 
@@ -186,7 +98,7 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
         "n_events": n_events,
         "model_name": model_name,
         "dataset_name": dataset_name,
-        "seed": dataset_params["seed"],
+        "random_state": dataset_params["random_state"],
         "n_rows": bunch.X_train.shape[0],
         "n_cols": bunch.X_train.shape[1],
         "censoring_rate": (bunch.y_train["event"] == 0).mean(),
@@ -202,6 +114,10 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
     tic = time()
     y_pred = model.predict_cumulative_incidence(X_test, time_grid)
     toc = time()
+
+    scores["time_grid"] = time_grid.tolist()
+    scores["y_test"] = y_test.values.tolist()
+    scores["y_pred"] = y_pred.tolist()
     scores["predict_time"] = round(toc - tic, 2)
 
     event_specific_ibs, event_specific_brier_scores = [], []
@@ -452,8 +368,6 @@ def standalone_aggregate():
     json.dump(agg_scores, open("./scores/agg_scores.json", "w"))
 
 
-# %%
 if __name__ == "__main__":
     evaluate_all_models()
 
-# %%

@@ -33,28 +33,26 @@ HYPER_PARAMS_GRID = {
     "survtrace": survtrace_grid,
     "fine_and_gray": {},
     "aalen_johansen": {},
+    "deephit": {},
+    "random_survival_forest":{},
 }
 
 DATASET_GRID = {
     "weibull": {
         "n_events": [3],
-        "n_samples": [10_000],
+        "n_samples": [20_000],
         "censoring_relative_scale": [1.5],
-        "complex_features": [True],
+        "complex_features": [False],
         "independent_censoring": [False],
-        "seed": list(range(5)),
     },
     "seer": {
-        "n_samples": [ None],
-        "seed": list(range(5))[1:],
+        "n_samples": [None],
     },
     "metabric": {
         "n_samples": [None],
-        "seed": list(range(5)),
     },
     "support": {
         "n_samples": [None],
-        "seed": list(range(5)),
     },
 }
 
@@ -66,8 +64,14 @@ N_ITER_INNER_LOOP_CV = 5
 
 
 def search_all_dataset_params(dataset_name, model_name):
-
+    """Find the best hyper-parameters for a given model and all datasets."""
     for dataset_params in ParameterGrid(DATASET_GRID[dataset_name]):
+        if model_name == "random_survival_forests":
+            dataset_params["max_samples"] = 100_000
+        elif model_name == "fine_and_gray":
+            dataset_params["max_samples"] = 10_000
+        else:
+            dataset_params["max_samples"] = None
         search_hp(dataset_name, dataset_params, model_name)
 
 
@@ -89,26 +93,34 @@ def search_hp(dataset_name, dataset_params, model_name):
     else:
         cv = SurvStratifiedShuffleSplit(n_splits=N_ITER_INNER_LOOP_CV)
 
-    if not SEARCH_HP:
+    if not SEARCH_HP or not param_grid:
         param_grid = {}
+        best_params = {"model_name": model_name}
+    
+    else:
 
-    hp_search = RandomizedSearchCV(
-        model,
-        param_grid,
-        cv=cv,
-        return_train_score=False,
-        refit=False,
-        n_jobs=1,
-        n_iter=N_ITER_OUTER_LOOP_CV,
-    ).fit(X_train, y_train)
+        hp_search = RandomizedSearchCV(
+            model,
+            param_grid,
+            cv=cv,
+            return_train_score=False,
+            refit=False,
+            n_jobs=1,
+            n_iter=N_ITER_OUTER_LOOP_CV,
+        ).fit(X_train, y_train)
 
-    best_params = hp_search.best_params_
-    best_params["model_name"] = model_name
+        best_params = hp_search.best_params_
+        best_params["model_name"] = model_name
 
     str_params = [str(v) for v in dataset_params.values()]
-    str_params = "_".join([model_name, *str_params])
-    path_profile = PATH_HP_SEARCH / dataset_name / str_params
+    str_params = "_".join(str_params)
+    path_profile = PATH_HP_SEARCH / model_name / dataset_name / str_params
     path_profile.mkdir(parents=True, exist_ok=True)
 
     json.dump(best_params, open(path_profile / "best_params.json", "w"))
     json.dump(dataset_params, open(path_profile / "dataset_params.json", "w"))
+
+
+#%%
+search_all_dataset_params("weibull", "random_survival_forest")
+# %%

@@ -41,7 +41,7 @@ class RSFEstimator(BaseEstimator):
     def __init__(
         self,
         max_fit_samples=100_000,
-        random_state=None,
+        random_state=0,
     ):
         self.max_fit_samples = max_fit_samples
         self.random_state = random_state
@@ -77,7 +77,7 @@ class RSFEstimator(BaseEstimator):
         df = pd.concat([X, y], axis=1)
         cols = df.columns.to_list()
         names = " + ".join(cols)
-        
+
         r_df = r_dataframe(df)
 
 
@@ -141,7 +141,7 @@ class RSFEstimator(BaseEstimator):
             if times is None:
                 times = self.times_
             
-            times_event = np.hstack([[0], times, [np.inf]])
+            times_event = np.hstack([[0], self.times_, [np.inf]])
 
             all_y_pred = []
             for idx in range(event_pred.shape[0]):
