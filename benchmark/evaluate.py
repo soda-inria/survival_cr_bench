@@ -32,6 +32,12 @@ def evaluate_all_models():
         for seed in range(5):
             dataset_params["random_state"] = seed
             model_params["random_state"] = seed
+            if model_name == "random_survival_forests":
+                dataset_params["max_samples"] = 100_000
+            elif model_name == "fine_and_gray":
+                dataset_params["max_samples"] = 10_000
+            else:
+                dataset_params["max_samples"] = None
             
             bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
             X_train, y_train = bunch.X_train, bunch.y_train
