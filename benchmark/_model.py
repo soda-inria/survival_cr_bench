@@ -61,7 +61,7 @@ def init_aalen_johansen(calculate_variance=False, seed=0):
     return AalenJohansenEstimator(calculate_variance=calculate_variance, seed=seed)
 
 
-def init_fine_and_gray():
+def init_fine_and_gray(max_samples=100_000):
     # This import is shielded inside a function call because R and cmprsk need
     # to be installed to import FineGrayEstimator.
     from hazardous._fine_and_gray import FineGrayEstimator
@@ -69,7 +69,7 @@ def init_fine_and_gray():
         [("encoder", SurvFeatureEncoder()), ("estimator", FineGrayEstimator())]
     )
 
-def init_random_survival_forest(**model_params):
+def init_random_survival_forest(max_samples=100_000, **model_params):
     # This import is shielded inside a function call because R and cmprsk need
     # to be installed to import FineGrayEstimator.
     from hazardous._rsf import RSFEstimator

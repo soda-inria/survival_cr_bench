@@ -75,7 +75,7 @@ def get_target(df):
     )
 
 
-class _DeepHit(tt.Model):
+class DeepHitEstimator(tt.Model):
     def __init__(
         self,
         num_nodes_shared=[64, 64],

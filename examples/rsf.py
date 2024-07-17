@@ -11,7 +11,7 @@ independent_censoring = False
 complex_features = False
 
 bunch = make_synthetic_competing_weibull(
-    n_samples=5000,
+    n_samples=100,
     n_events=3,
     return_X_y=True,
     censoring_relative_scale=1.5,
@@ -36,10 +36,18 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 time_deb = time()
 rsf = RSFEstimator()
 
-
 rsf.fit(X_train, y_train)
 time_fin = time()
+
+#%%
 res = rsf.predict_cumulative_incidence(X_test)
 print(f'Time to train on {X_train.shape[0]} samples: {time_fin - time_deb}')
 
+# %%
+from hazardous.utils import make_time_grid
+
+time_grid = make_time_grid(y_train["duration"], n_steps=10)
+
+# %%
+rsf.predict_cumulative_incidence(X_test, time_grid).shape
 # %%
