@@ -22,10 +22,7 @@ class FineGrayEstimator(BaseEstimator):
 
     Parameters
     ----------
-    event_of_interest : int, default=1,
-        The event to perform Fine and Gray regression on.
-
-    max_fit_samples : int, default=10_000,
+    max_samples : int, default=10_000,
         The maximum number of samples to use during fit.
         This is required since the time complexity of this operation is quadratic.
 
@@ -36,10 +33,10 @@ class FineGrayEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_fit_samples=10_000,
+        max_samples=10_000,
         random_state=None,
     ):
-        self.max_fit_samples = max_fit_samples
+        self.max_samples = max_samples
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -58,11 +55,11 @@ class FineGrayEstimator(BaseEstimator):
         """
         X = self._check_input(X, y)
 
-        if X.shape[0] > self.max_fit_samples:
+        if X.shape[0] > self.max_samples:
             rng = check_random_state(self.random_state)
             sample_indices = rng.choice(
                 np.arange(X.shape[0]),
-                size=self.max_fit_samples,
+                size=self.max_samples,
                 replace=False,
             )
             X, y = X.iloc[sample_indices], y.iloc[sample_indices]
@@ -160,6 +157,7 @@ class FineGrayEstimator(BaseEstimator):
         surv_curve = 1 - np.sum(all_event_y_pred, axis=0)
         all_event_y_pred = [surv_curve] + all_event_y_pred
         all_event_y_pred = np.asarray(all_event_y_pred)
+
         return all_event_y_pred
 
     def _check_input(self, X, y):

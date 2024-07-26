@@ -29,7 +29,7 @@ class RSFEstimator(BaseEstimator):
     event_of_interest : int, default=1,
         The event to perform Fine and Gray regression on.
 
-    max_fit_samples : int, default=10_000,
+    max_samples : int, default=100_000,
         The maximum number of samples to use during fit.
         This is required since the time complexity of this operation is quadratic.
 
@@ -40,10 +40,10 @@ class RSFEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_fit_samples=100_000,
+        max_samples=100_000,
         random_state=0,
     ):
-        self.max_fit_samples = max_fit_samples
+        self.max_samples = max_samples
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -62,11 +62,11 @@ class RSFEstimator(BaseEstimator):
         """
         X = self._check_input(X, y)
 
-        if X.shape[0] > self.max_fit_samples:
+        if X.shape[0] > self.max_samples:
             rng = check_random_state(self.random_state)
             sample_indices = rng.choice(
                 np.arange(X.shape[0]),
-                size=self.max_fit_samples,
+                size=self.max_samples,
                 replace=False,
             )
             X, y = X.iloc[sample_indices], y.iloc[sample_indices]
@@ -80,13 +80,13 @@ class RSFEstimator(BaseEstimator):
 
         r_df = r_dataframe(df)
 
-
         rsf_object = rfs.rfsrc(
             Formula(f"Surv(duration, event) ~ {names}"), data=r_df, seed=self.random_state)
         self.r_parsed = rsf_object
         self.parsed = parse_r_list(rsf_object)
         self.times_ = np.array(self.parsed["time.interest"])
         self.y_train = y
+
         return self
 
     def predict_cumulative_incidence(self, X, times=None):
@@ -110,7 +110,6 @@ class RSFEstimator(BaseEstimator):
         check_is_fitted(self, "parsed")
         
         r_df = r_dataframe(X)
-
 
         # predict
         object_pred_r = r.predict(self.r_parsed, r_df)
@@ -136,7 +135,6 @@ class RSFEstimator(BaseEstimator):
         
             y_pred_t_max = event_pred[:, [-1]]
             event_pred = np.hstack([y_pred_at_0, event_pred, y_pred_t_max])
-
 
             if times is None:
                 times = self.times_

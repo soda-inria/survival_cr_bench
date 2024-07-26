@@ -1,8 +1,12 @@
 # %%
 from time import time
+from pathlib import Path
+from tqdm import tqdm
 import json
 from collections import defaultdict
 import numpy as np
+from sklearn.model_selection import train_test_split
+
 from hazardous.utils import make_time_grid
 from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
@@ -19,84 +23,90 @@ from hyper_parameter_search import PATH_HP_SEARCH
 
 # Setting an integer value will perform subsampling on the test set
 # to debug faster. Otherwise, setting it to None will disable this option.
-DEBUG_N_SUBSAMPLE = 1000
+DEBUG_N_SUBSAMPLE = None
+PATH_SCORES = Path("scores/")
 
-
-def evaluate_all_models():
-
-    all_scores = defaultdict(list)
+def evaluate_all_models(include_models=None, verbose=True):
 
     all_params = get_params()
 
-    for (dataset_name, dataset_params, model_name, model_params) in all_params:
-        for seed in range(5):
-            dataset_params["random_state"] = seed
-            model_params["random_state"] = seed
-            if model_name == "random_survival_forests":
-                dataset_params["max_samples"] = 100_000
-            elif model_name == "fine_and_gray":
-                dataset_params["max_samples"] = 10_000
-            else:
-                dataset_params["max_samples"] = None
-            
-            bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
-            X_train, y_train = bunch.X_train, bunch.y_train
+    all_scores = defaultdict(lambda: defaultdict(list))
+    score_path = Path("scores")
 
-            model = INIT_MODEL_FUNCS[model_name](**model_params)
-            print(dataset_params)
-            print(model)
-            print(model_params)
-            print(f"start fitting {model_name} on {dataset_name}")
-            tic = time()
-            model = model.fit(X_train, y_train)
-            toc = time()
-            print(f"fitting {model_name} on {dataset_name} done")
-            fit_time = round(toc - tic, 2)
-            print("start evaluating")
-            scores = evaluate(
-                model, bunch, dataset_name, dataset_params, model_name
-            )
-            scores["fit_time"] = fit_time
-            print(f"evaluating {model_name} on {dataset_name} done")
-            
-            all_scores[f"{dataset_name}__{model_name}"].append(scores)
-            #import ipdb; ipdb.set_trace()
-            json.dump(all_scores, open("./scores/raw_scores.json", "w"))
+    # We iterate over each model, dataset and random_state in best_hyper_parameters/
+    for (dataset_name, dataset_params, model_name, model_params) in all_params:
+
+        if include_models is not None and not model_name in include_models:
+            continue
         
-        agg_scores = aggregate_scores(all_scores)
-        json.dump(agg_scores, open("./scores/agg_scores.json", "w"))
+        bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
+        X_train, y_train = bunch.X_train, bunch.y_train
+
+        model = INIT_MODEL_FUNCS[model_name](**model_params)
+
+        if verbose:
+            print(
+                f"{' Start fitting ' + model_name + ' on ' + dataset_name + ' ':=^50}"
+            )
+            print(f"dataset_params: {dataset_params}")
+            print(f"model_params: {model_params}")
+        
+        tic = time()
+        model = model.fit(X_train, y_train)
+        toc = time()
+        fit_time = round(toc - tic, 2)
+
+        scores = evaluate(
+            model, bunch, dataset_name, dataset_params, model_name, verbose,
+        )
+        scores["fit_time"] = fit_time
+
+        if verbose:
+            print(f"Evaluation done")
+        
+        all_scores[model_name][dataset_name].append(scores)
+        path_raw_scores = PATH_SCORES / "raw" / f"{model_name}.json"
+        json.dump(all_scores[model_name], open(path_raw_scores, "w"))
+        
+    agg_scores = aggregate_scores(all_scores[model_name])
+    path_agg_scores = PATH_SCORES / "agg" / f"{model_name}.json"
+    json.dump(agg_scores, open(path_agg_scores, "w"))
 
 
 def get_params():
-    
-    """Fetch and accumulate the data and models params.
+    """Fetch and accumulate the data and models params from \
+    the hp tuning results.
     """
-    
-    all_model_params, all_dataset_params = [], []
     all_params = []
 
-    for md_path in PATH_HP_SEARCH.glob("*"):
-        model_name = md_path.name
-        for ds_path in md_path.glob("*"):
+    for model_path in PATH_HP_SEARCH.glob("*"):
+        model_name = model_path.name
+        
+        for dataset_path in model_path.glob("*"):
+            dataset_name = dataset_path.name    
             
-            dataset_name = ds_path.name    
-            for model_path in ds_path.glob("*"):
+            for run_path in dataset_path.glob("*"):
                 
-                best_model_params = json.load(open(model_path / "best_params.json"))
-                dataset_params = json.load(open(model_path / "dataset_params.json"))
+                best_model_params = json.load(open(run_path / "best_params.json"))
+                dataset_params = json.load(open(run_path / "dataset_params.json"))
                 model_name = best_model_params.pop("model_name")
-                all_dataset_params.append([dataset_name, dataset_params])
-                all_model_params.append([model_name, best_model_params])
-                all_params.append([dataset_name, dataset_params, model_name, best_model_params])
+
+                all_params.append(
+                    [dataset_name, dataset_params, model_name, best_model_params]
+                )
 
     return all_params
 
 
-def evaluate(model, bunch, dataset_name, dataset_params, model_name):
+def evaluate(
+    model, bunch, dataset_name, dataset_params, model_name, verbose=True
+):
     """Evaluate a model against its test set.
     """
-    
-    n_events = np.unique(bunch.y_train["event"]).shape[0] - 1
+    X_train, y_train = bunch.X_train, bunch.y_train
+    X_test, y_test = bunch.X_test, bunch.y_test
+
+    n_events = np.unique(y_train["event"]).shape[0] - 1
     is_competing_risk = n_events > 1
 
     scores = {
@@ -104,31 +114,39 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
         "n_events": n_events,
         "model_name": model_name,
         "dataset_name": dataset_name,
-        "random_state": dataset_params["random_state"],
-        "n_rows": bunch.X_train.shape[0],
-        "n_cols": bunch.X_train.shape[1],
-        "censoring_rate": (bunch.y_train["event"] == 0).mean(),
+        "n_rows": X_train.shape[0],
+        "n_cols": X_train.shape[1],
+        "censoring_rate": (y_train["event"] == 0).mean(),
+        **dataset_params,
     }
 
-    X_test, y_test, y_train = bunch.X_test, bunch.y_test, bunch.y_train
     if DEBUG_N_SUBSAMPLE is not None:
-        X_test, y_test = X_test.iloc[:DEBUG_N_SUBSAMPLE], y_test.iloc[:DEBUG_N_SUBSAMPLE]
+        X_test, _, y_test, _ = train_test_split(
+            X_test,
+            y_test,
+            train_size=DEBUG_N_SUBSAMPLE,
+            stratify=y_test["event"],
+            random_state=0 # Fix seed for evaluation split
+        )
 
     time_grid = make_time_grid(y_test["duration"])
 
-    print("start evaluating")
+    if verbose:
+        print("Running prediction")
     tic = time()
     y_pred = model.predict_cumulative_incidence(X_test, time_grid)
     toc = time()
 
     scores["time_grid"] = time_grid.tolist()
-    scores["y_test"] = y_test.values.tolist()
     scores["y_pred"] = y_pred.tolist()
     scores["predict_time"] = round(toc - tic, 2)
 
     event_specific_ibs, event_specific_brier_scores = [], []
     event_specific_c_index = []
-    print("computing brier scores, ibs and c-index")
+
+    if verbose:
+        print("Computing Brier scores, IBS and C-index")
+
     for event_id in range(1, n_events+1):
 
         # Brier score and IBS
@@ -182,7 +200,12 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
         truncation_quantiles = [0.25, 0.5, 0.75]
         times = np.quantile(time_grid, truncation_quantiles)
         c_indices = []
-        for time_idx, tau in enumerate(times):
+        iterator = tqdm(
+            enumerate(times),
+            desc=f"c-index at tau for event {event_id}",
+            total=len(times),
+        )
+        for time_idx, tau in iterator:
             y_pred_at_t = y_pred[event_id][:, time_idx]
             ct_index, _, _, _, _ = concordance_index_ipcw(
                 y_train,
@@ -204,17 +227,11 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
         "event_specific_c_index": event_specific_c_index,
     })
 
-    if not is_competing_risk:
-        # Yana loss
-        print("computing censlog")
-        censlog = CensoredNegativeLogLikelihoodSimple().loss(
-            y_pred, y_test["duration_test"], y_test["event"], time_grid
-        )
-        scores["censlog"] = round(censlog, 4)
-            
-    else:
+    if is_competing_risk:
         # Accuracy in time
-        print("computing accuracy in time")
+        if verbose:
+            print("Computing accuracy in time")
+
         truncation_quantiles = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
         times = np.quantile(time_grid, truncation_quantiles)
         accuracy = []
@@ -232,22 +249,30 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name):
                     4
                 )
             )
-        
         scores["accuracy_in_time"] = {
             "time_quantile": truncation_quantiles,
             "accuracy": accuracy,
         }
 
+    else:
+        # Yana loss
+        if verbose:
+            print("Computing Censlog")
+
+        censlog = CensoredNegativeLogLikelihoodSimple().loss(
+            y_pred, y_test["duration_test"], y_test["event"], time_grid
+        )
+        scores["censlog"] = round(censlog, 4)        
+
     return scores
 
 
-def aggregate_scores(all_scores):
+def aggregate_scores(model_scores):
     """Aggregate model seeds
     """
-    agg_scores = defaultdict(dict)
+    agg_scores = dict()
 
-    for key, scores in all_scores.items():
-        dataset_name, model_name = key.split("__")
+    for dataset_name, scores in model_scores.items():
 
         agg_score = _aggregate_scores(scores)
 
@@ -280,7 +305,7 @@ def aggregate_scores(all_scores):
         for k in fields:
             agg_score[k] = scores[0][k]
 
-        agg_scores[dataset_name][model_name] = agg_score
+        agg_scores[dataset_name] = agg_score
 
     return agg_scores
 
@@ -366,14 +391,18 @@ def _agg_survival(scores):
     }
 
 
-def standalone_aggregate():
+def standalone_aggregate(model_name):
     """Run to restart the aggregation from the raw scores checkpoint
     in case it failed."""
-    all_scores = json.load(open("./scores/raw_scores.json"))
-    agg_scores = aggregate_scores(all_scores)
-    json.dump(agg_scores, open("./scores/agg_scores.json", "w"))
+    model_scores = json.load(open(f"./scores/raw/{model_name}.json"))
+    agg_scores = aggregate_scores(model_scores)
+    json.dump(agg_scores, open(f"./scores/agg/{model_name}.json", "w"))
 
+# %%
 
 if __name__ == "__main__":
-    evaluate_all_models()
+    evaluate_all_models(include_models=["fine_and_gray"])
+    #standalone_aggregate("fine_and_gray")
 
+
+# %%

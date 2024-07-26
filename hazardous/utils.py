@@ -88,7 +88,7 @@ def get_n_events(event):
     return len(event_ids) - has_censoring
 
 
-def make_time_grid(duration, n_steps=100):
+def make_time_grid(duration, n_steps=20):
     t_min, t_max = duration.min(), duration.max()
     return np.linspace(t_min, t_max, n_steps)
 

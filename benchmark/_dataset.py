@@ -1,4 +1,3 @@
-import os
 from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
 from pycox.datasets import support, metabric
@@ -9,7 +8,6 @@ from hazardous.data._seer import (
 )
 from hazardous.data._competing_weibull import make_synthetic_competing_weibull
 
-#PATH_SEER = os.getenv("PATH_SEER")
 PATH_SEER = "../hazardous/data/seer_cancer_cardio_raw_data.txt"
 PATH_CHURN = "../hazardous/data/churn.csv"
 
@@ -23,12 +21,10 @@ def get_split_seer(dataset_params):
     X, y = bunch.X, bunch.y
     column_names = CATEGORICAL_COLUMN_NAMES + NUMERIC_COLUMN_NAMES
     X = X[column_names]
-    max_samples = dataset_params.pop("max_samples")
-    return split(X, y, dataset_params, max_samples)
+    return split(X, y, dataset_params)
 
 
 def get_split_synthetic(dataset_params):
-    max_samples = dataset_params.pop("max_samples")
     bunch = make_synthetic_competing_weibull(**dataset_params)
     X, y = bunch.X, bunch.y
 
@@ -36,7 +32,6 @@ def get_split_synthetic(dataset_params):
         X,
         y,
         dataset_params,
-        max_samples,
         shape_censoring=bunch.shape_censoring,
         scale_censoring=bunch.scale_censoring,
     )
@@ -68,18 +63,13 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
     X[numerical_features] = X[numerical_features].astype("float64")
 
     y = df[["duration", "event"]]
-    max_samples = dataset_params.pop("max_samples")
 
-    return split(X, y, dataset_params, max_samples)
+    return split(X, y, dataset_params)
 
 
-def split(X, y, dataset_params, max_samples=None, **kwargs):
+def split(X, y, dataset_params, **kwargs):
     
-    if "random_state" in dataset_params:
-        random_state = dataset_params["random_state"]
-    else:
-        # for the HP search to be faster
-        random_state = 0
+    random_state = dataset_params.get("random_state", 0)
     
     X_train, X_test, y_train, y_test = train_test_split(
         X,
@@ -89,16 +79,15 @@ def split(X, y, dataset_params, max_samples=None, **kwargs):
         random_state=random_state,
     )
 
-    # Used by models with scaling issues during training.
-    if max_samples is not None:
-        if X_train.shape[0] > max_samples:
-            X_train, _, y_train, _ = train_test_split(
-                X_train,
-                y_train,
-                train_size=max_samples,
-                stratify=y_train["event"],
-                random_state=0,
-            )
+    n_samples = dataset_params.get("n_samples", None)
+    if not n_samples is None and n_samples < X_train.shape[0]:
+        X_train, _, y_train, _ = train_test_split(
+            X_train,
+            y_train,
+            train_size=n_samples,
+            stratify=y_train["event"],
+            random_state=random_state,
+        )
 
     return Bunch(
         X_train=X_train,

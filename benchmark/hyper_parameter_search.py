@@ -28,13 +28,17 @@ survtrace_grid = {
     "batch_size": [256, 512, 1024],
 }
 
+fine_and_gray_grid = {
+    "estimator__max_samples": [10_000],
+}
+
 HYPER_PARAMS_GRID = {
     "gbmi": gbmi_param_grid,
     "survtrace": survtrace_grid,
-    "fine_and_gray": {},
+    "fine_and_gray": fine_and_gray_grid,
     "aalen_johansen": {},
     "deephit": {},
-    "random_survival_forest":{},
+    "random_survival_forest": {},
 }
 
 DATASET_GRID = {
@@ -44,15 +48,16 @@ DATASET_GRID = {
         "censoring_relative_scale": [1.5],
         "complex_features": [False],
         "independent_censoring": [False],
+        "random_state": range(5),
     },
     "seer": {
-        "n_samples": [None],
+        "random_state": range(3),
     },
     "metabric": {
-        "n_samples": [None],
+        "random_state": range(5),
     },
     "support": {
-        "n_samples": [None],
+        "random_state": range(5),
     },
 }
 
@@ -63,15 +68,11 @@ N_ITER_OUTER_LOOP_CV = 10
 N_ITER_INNER_LOOP_CV = 5
 
 
-def search_all_dataset_params(dataset_name, model_name):
+def search_all_dataset_params(dataset_name, model_name, verbose=True):
     """Find the best hyper-parameters for a given model and all datasets."""
     for dataset_params in ParameterGrid(DATASET_GRID[dataset_name]):
-        if model_name == "random_survival_forests":
-            dataset_params["max_samples"] = 100_000
-        elif model_name == "fine_and_gray":
-            dataset_params["max_samples"] = 10_000
-        else:
-            dataset_params["max_samples"] = None
+        if verbose:
+            print("dataset_params", dataset_params)
         search_hp(dataset_name, dataset_params, model_name)
 
 
@@ -83,7 +84,9 @@ def search_hp(dataset_name, dataset_params, model_name):
     X_train, y_train = bunch.X_train, bunch.y_train
 
     model_init_func = INIT_MODEL_FUNCS[model_name]
-    model = model_init_func()
+    model = model_init_func(
+        random_state=dataset_params["random_state"]
+    )
     param_grid = HYPER_PARAMS_GRID[model_name]
 
     if model_name == "survtrace" or not SEARCH_HP:
@@ -93,12 +96,15 @@ def search_hp(dataset_name, dataset_params, model_name):
     else:
         cv = SurvStratifiedShuffleSplit(n_splits=N_ITER_INNER_LOOP_CV)
 
+    best_model_params = {
+        "model_name": model_name,
+        "random_state": dataset_params["random_state"],
+    }
+
     if not SEARCH_HP or not param_grid:
         param_grid = {}
-        best_params = {"model_name": model_name}
     
     else:
-
         hp_search = RandomizedSearchCV(
             model,
             param_grid,
@@ -109,18 +115,18 @@ def search_hp(dataset_name, dataset_params, model_name):
             n_iter=N_ITER_OUTER_LOOP_CV,
         ).fit(X_train, y_train)
 
-        best_params = hp_search.best_params_
-        best_params["model_name"] = model_name
+        best_model_params.update(hp_search.best_params_)
 
-    str_params = [str(v) for v in dataset_params.values()]
+    str_params = [f"{k}{v}" for k, v in dataset_params.items()]
     str_params = "_".join(str_params)
     path_profile = PATH_HP_SEARCH / model_name / dataset_name / str_params
     path_profile.mkdir(parents=True, exist_ok=True)
 
-    json.dump(best_params, open(path_profile / "best_params.json", "w"))
+    json.dump(best_model_params, open(path_profile / "best_params.json", "w"))
     json.dump(dataset_params, open(path_profile / "dataset_params.json", "w"))
 
 
-#%%
-search_all_dataset_params("weibull", "random_survival_forest")
+# %%
+if __name__ == "__main__":
+    search_all_dataset_params("seer", "fine_and_gray")
 # %%
