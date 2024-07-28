@@ -1,4 +1,7 @@
 # %%
+"""
+Require different n_samples with synthetic dataset.
+"""
 from pathlib import Path
 import seaborn as sns
 from matplotlib import pyplot as plt
@@ -10,7 +13,6 @@ sns.set_style(style="white")
 sns.set_context("paper")
 plt.style.use("seaborn-v0_8-talk")
 
-USER = "vincentmaladiere"
 DATASET_NAME = "weibull"
 
 
@@ -62,7 +64,7 @@ for estimator_name, df_est in df.groupby("estimator_name"):
         title=estimator_name,
     )
 
-    file_path = f"/Users/{USER}/Desktop/02_fit_predict_times_{estimator_name}.pdf"
+    file_path = f"fit_predict_times_{estimator_name}.pdf"
     fig.savefig(file_path, format="pdf")
 
 # %%

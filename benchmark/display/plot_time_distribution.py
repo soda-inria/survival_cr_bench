@@ -9,9 +9,6 @@ sns.set_style(style="white")
 sns.set_context("paper")
 plt.style.use("seaborn-v0_8-talk")
 
-USER = "vincentmaladiere"
-
-
 _, y = make_synthetic_competing_weibull(
     n_events=3,
     censoring_relative_scale=0.8,
@@ -33,8 +30,9 @@ ax.set(
     ylabel="Total",
 )
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+plt.tight_layout()
 
-file_path = f"/Users/{USER}/Desktop/01_time_hist.pdf"
+file_path = "time_distribution.pdf"
 fig.savefig(file_path, format="pdf")
 
 # %%

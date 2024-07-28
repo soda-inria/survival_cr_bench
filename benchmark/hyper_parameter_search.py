@@ -51,7 +51,7 @@ DATASET_GRID = {
         "random_state": range(5),
     },
     "seer": {
-        "random_state": range(3),
+        "random_state": range(2, 5),
     },
     "metabric": {
         "random_state": range(5),
@@ -66,6 +66,7 @@ PATH_HP_SEARCH = Path("./best_hyper_parameters")
 SEARCH_HP = True
 N_ITER_OUTER_LOOP_CV = 10
 N_ITER_INNER_LOOP_CV = 5
+N_JOBS_CV = None
 
 
 def search_all_dataset_params(dataset_name, model_name, verbose=True):
@@ -111,7 +112,7 @@ def search_hp(dataset_name, dataset_params, model_name):
             cv=cv,
             return_train_score=False,
             refit=False,
-            n_jobs=1,
+            n_jobs=N_JOBS_CV,
             n_iter=N_ITER_OUTER_LOOP_CV,
         ).fit(X_train, y_train)
 
@@ -128,5 +129,5 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("seer", "fine_and_gray")
+    search_all_dataset_params("seer", "survtrace")
 # %%

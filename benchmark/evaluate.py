@@ -7,6 +7,7 @@ from collections import defaultdict
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from sksurv.metrics import concordance_index_ipcw
 from hazardous.utils import make_time_grid
 from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
@@ -15,7 +16,6 @@ from hazardous.metrics._brier_score import (
     brier_score_incidence_oracle,
 )
 from hazardous.metrics._yana import CensoredNegativeLogLikelihoodSimple
-from hazardous.metrics._concordance import concordance_index_ipcw
 
 from _dataset import LOAD_DATASET_FUNCS
 from _model import INIT_MODEL_FUNCS
@@ -25,13 +25,17 @@ from hyper_parameter_search import PATH_HP_SEARCH
 # to debug faster. Otherwise, setting it to None will disable this option.
 DEBUG_N_SUBSAMPLE = None
 PATH_SCORES = Path("scores/")
+N_STEPS_TIME_GRID = 20
+
 
 def evaluate_all_models(include_models=None, verbose=True):
 
     all_params = get_params()
 
     all_scores = defaultdict(lambda: defaultdict(list))
-    score_path = Path("scores")
+
+    if isinstance(include_models, str):
+        include_models = [include_models]
 
     # We iterate over each model, dataset and random_state in best_hyper_parameters/
     for (dataset_name, dataset_params, model_name, model_params) in all_params:
@@ -65,11 +69,11 @@ def evaluate_all_models(include_models=None, verbose=True):
             print(f"Evaluation done")
         
         all_scores[model_name][dataset_name].append(scores)
-        path_raw_scores = PATH_SCORES / "raw" / f"{model_name}.json"
+        path_raw_scores = PATH_SCORES / "raw" / model_name / f"{dataset_name}.json"
         json.dump(all_scores[model_name], open(path_raw_scores, "w"))
         
     agg_scores = aggregate_scores(all_scores[model_name])
-    path_agg_scores = PATH_SCORES / "agg" / f"{model_name}.json"
+    path_agg_scores = PATH_SCORES / "agg" / model_name / f"{dataset_name}.json"
     json.dump(agg_scores, open(path_agg_scores, "w"))
 
 
@@ -129,7 +133,7 @@ def evaluate(
             random_state=0 # Fix seed for evaluation split
         )
 
-    time_grid = make_time_grid(y_test["duration"])
+    time_grid = make_time_grid(y_test["duration"], n_steps=N_STEPS_TIME_GRID)
 
     if verbose:
         print("Running prediction")
@@ -137,8 +141,8 @@ def evaluate(
     y_pred = model.predict_cumulative_incidence(X_test, time_grid)
     toc = time()
 
-    scores["time_grid"] = time_grid.tolist()
-    scores["y_pred"] = y_pred.tolist()
+    scores["time_grid"] = time_grid.round(4).tolist()
+    scores["y_pred"] = y_pred.round(4).tolist()
     scores["predict_time"] = round(toc - tic, 2)
 
     event_specific_ibs, event_specific_brier_scores = [], []
@@ -147,10 +151,13 @@ def evaluate(
     if verbose:
         print("Computing Brier scores, IBS and C-index")
 
+    y_train_binary = y_train.copy()
+    y_test_binary = y_test.copy()
+
     for event_id in range(1, n_events+1):
 
         # Brier score and IBS
-        if dataset_name == "synthetic":
+        if dataset_name == "weibull":
             # Use oracle metrics with the synthetic dataset.
             ibs = integrated_brier_score_incidence_oracle(
                 y_train,
@@ -197,19 +204,23 @@ def evaluate(
         })
 
         # C-index
+        y_train_binary["event"] = (y_train["event"] == event_id)
+        y_test_binary["event"] = (y_test["event"] == event_id)
+
         truncation_quantiles = [0.25, 0.5, 0.75]
-        times = np.quantile(time_grid, truncation_quantiles)
-        c_indices = []
-        iterator = tqdm(
-            enumerate(times),
+        taus = np.quantile(time_grid, truncation_quantiles)
+        taus = tqdm(
+            taus,
             desc=f"c-index at tau for event {event_id}",
-            total=len(times),
+            total=len(taus),
         )
-        for time_idx, tau in iterator:
-            y_pred_at_t = y_pred[event_id][:, time_idx]
+        c_indices = []
+        for tau in taus:
+            tau_idx = np.searchsorted(time_grid, tau)
+            y_pred_at_t = y_pred[event_id][:, tau_idx]
             ct_index, _, _, _, _ = concordance_index_ipcw(
-                y_train,
-                y_test,
+                make_recarray(y_train_binary),
+                make_recarray(y_test_binary),
                 y_pred_at_t,
                 tau=tau,
             )
@@ -265,6 +276,15 @@ def evaluate(
         scores["censlog"] = round(censlog, 4)        
 
     return scores
+
+
+def make_recarray(y):
+    event = y["event"].values
+    duration = y["duration"].values
+    return np.array(
+        [(event[i], duration[i]) for i in range(y.shape[0])],
+        dtype=[("e", bool), ("t", float)],
+    )
 
 
 def aggregate_scores(model_scores):
@@ -401,7 +421,7 @@ def standalone_aggregate(model_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["fine_and_gray"])
+    evaluate_all_models(include_models=None)
     #standalone_aggregate("fine_and_gray")
 
 

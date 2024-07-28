@@ -1,5 +1,7 @@
 # %%
-
+"""
+Require different n_samples with synthetic dataset.
+"""
 
 from tqdm import tqdm
 import pandas as pd

@@ -1,4 +1,7 @@
 # %%
+"""
+Require different n_samples with synthetic dataset.
+"""
 from tqdm import tqdm
 from pathlib import Path
 import pandas as pd

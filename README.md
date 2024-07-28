@@ -71,43 +71,51 @@ To use the SEER dataset in the benchmarks, you first have to make a request and 
 
 **Note that the waiting period can be up to several days.**
 
-#### 1.4 Add config
-
-Edit the file `config.py` with your settings. Note that the paths must be absolute.
-
-```python
-SEER_PATH = </your/path/to/seer>
-```
-
 
 ## 2. Run the benchmarks
 
 #### 2.1 Benchmarks on this repository (table A)
 
-###### 2.1.1 Running the hyperparameter search
+##### 2.1.1 Running the hyperparameter search
 
 We provide the best parameters that we found during our hyper parameters search.
-However, if you want to re-run to find your best params given a dataset, you can 
-run the following function given the model and the dataset that you want to study.
-For example:
+To re-run this search operation, use the following:
 
+```shell
+cd benchmark
+```
+Then in a python shell:
 
 ```python
+from hyper_parameter_search import search_all_dataset_params
+
 search_all_dataset_params(dataset_name="seer", model_name="gbmi")
 ```
 
-This will create a folder with two files writing the best parameters for a given model 
-and its grid search and a given dataset. 
+See `benchmark/_dataset.py` and `benchmark/_model.py` to see the options.
 
-###### 2.1.2 Fitting and creating the results
+Running this function will create two files in the folder `benchmark/best_hyper_parameters/<model_name>/<dataset_name>/<dataset_params>`.
 
-You can run the 
-```shell 
-python evaluate.py
+- the best hyper-parameters of the cross-validated model (`best_params.json`)
+- the parameters used to generate the dataset (`dataset_params.json`).
+
+##### 2.1.2 Fitting and creating the results
+
+
+```python
+from evaluate import evaluate_all_models
+
+evaluate_all_models()
 ```
-file, it will fit all models for given parameters.
-For each seed, it will train a model and predict on the test set and record the different
-metrics. Doing so, it allows us to accelerate the displays. 
+
+This will fit all models present in the `best_hyper_parameters` folder with their best hyper parameters, for each random seed.
+
+Then, each fitted model is evaluated against the test set to compute metrics. The metrics are written at `benchmark/scores/raw/<model_name>/<dataset_name>.json` for each seed.
+
+Finally, for each model and each dataset, the results are aggregated seed-wise and written at `benchmark/scores/agg/<model_name>/<dataset_name>.json`.
+
+These aggregated metrics will be used to plot figures.
+
 
 #### 2.2 Benchmarks on authors' repository (table B)
 
@@ -127,5 +135,5 @@ As we already provide the results from our benchmarks, you don't have to run the
 Each file corresponds to a figure introduced in the paper, with its number in the file name. Running a display file will create a .png file at the root of this repository.
 
 ```shell
-python benchmark/display_06_brier_score
+python benchmark/display/display_06_brier_score.py
 ```
