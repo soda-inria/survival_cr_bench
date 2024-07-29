@@ -296,7 +296,9 @@ def evaluate(
         scores["censlog"] = round(censlog, 4)        
 
     if verbose:
-        print(scores)
+        print(f"{event_specific_ibs=}")
+        print(f"{event_specific_c_index}")
+        print(f"{accuracy=}")
 
     return scores
 
