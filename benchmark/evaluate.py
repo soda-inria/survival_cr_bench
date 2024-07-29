@@ -69,12 +69,23 @@ def evaluate_all_models(include_models=None, verbose=True):
             print(f"Evaluation done")
         
         all_scores[model_name][dataset_name].append(scores)
-        path_raw_scores = PATH_SCORES / "raw" / model_name / f"{dataset_name}.json"
-        json.dump(all_scores[model_name], open(path_raw_scores, "w"))
+        path_dir = PATH_SCORES / "raw" / model_name
+        path_dir.mkdir(parents=True, exist_ok=True)
+        path_file = path_dir / f"{dataset_name}.json"
+        json.dump(
+            all_scores[model_name][dataset_name],
+            open(path_file, "w")
+        )
+        print(f"Wrote {path_file}")
         
-    agg_scores = aggregate_scores(all_scores[model_name])
-    path_agg_scores = PATH_SCORES / "agg" / model_name / f"{dataset_name}.json"
-    json.dump(agg_scores, open(path_agg_scores, "w"))
+    for model_name in all_scores.keys():
+        for dataset_name in all_scores[model_name].keys():
+            agg_scores = aggregate_scores(all_scores[model_name][dataset_name])
+            path_dir = PATH_SCORES / "agg" / model_name
+            path_dir.mkdir(parents=True, exist_ok=True)
+            path_file = path_dir / f"{dataset_name}.json"
+            json.dump(agg_scores, open(path_file, "w"))
+            print(f"Wrote {path_file}")
 
 
 def get_params():
@@ -93,7 +104,7 @@ def get_params():
                 
                 best_model_params = json.load(open(run_path / "best_params.json"))
                 dataset_params = json.load(open(run_path / "dataset_params.json"))
-                model_name = best_model_params.pop("model_name")
+                best_model_params.pop("model_name", None)
 
                 all_params.append(
                     [dataset_name, dataset_params, model_name, best_model_params]
@@ -287,47 +298,41 @@ def make_recarray(y):
     )
 
 
-def aggregate_scores(model_scores):
+def aggregate_scores(seed_scores):
     """Aggregate model seeds
     """
-    agg_scores = dict()
+    agg_score = _aggregate_scores(seed_scores)
 
-    for dataset_name, scores in model_scores.items():
+    if seed_scores[0]["is_competing_risk"]:
+        agg_score.update(
+            _agg_competing_risk(seed_scores)
+        )
+        agg_score["average_ibs"] = np.mean([
+            event_score["mean_ibs"]
+            for event_score in agg_score["event_specific_ibs"]
+        ]).round(4)
+    else:
+        agg_score.update(
+            _agg_survival(seed_scores)
+        )
 
-        agg_score = _aggregate_scores(scores)
+    for col in ["fit_time", "predict_time"]:
+        agg_score.update({
+            f"mean_{col}": np.mean([score[col] for score in seed_scores]).round(2),
+            f"std_{col}": np.std([score[col] for score in seed_scores]).round(2),
+        })
 
-        if scores[0]["is_competing_risk"]:
-            agg_score.update(
-                _agg_competing_risk(scores)
-            )
-            agg_score["average_ibs"] = np.mean([
-                event_score["mean_ibs"]
-                for event_score in agg_score["event_specific_ibs"]
-            ]).round(4)
-        else:
-            agg_score.update(
-                _agg_survival(scores)
-            )
+    fields = [
+        "is_competing_risk",
+        "n_events",
+        "n_rows",
+        "n_cols",
+        "censoring_rate",
+    ]
+    for k in fields:
+        agg_score[k] = seed_scores[0][k]
 
-        for col in ["fit_time", "predict_time"]:
-            agg_score.update({
-                f"mean_{col}": np.mean([score[col] for score in scores]).round(2),
-                f"std_{col}": np.std([score[col] for score in scores]).round(2),
-            })
-
-        fields = [
-            "is_competing_risk",
-            "n_events",
-            "n_rows",
-            "n_cols",
-            "censoring_rate",
-        ]
-        for k in fields:
-            agg_score[k] = scores[0][k]
-
-        agg_scores[dataset_name] = agg_score
-
-    return agg_scores
+    return agg_score
 
 
 def _aggregate_scores(scores):
@@ -411,18 +416,21 @@ def _agg_survival(scores):
     }
 
 
-def standalone_aggregate(model_name):
+def standalone_aggregate(model_name, dataset_name):
     """Run to restart the aggregation from the raw scores checkpoint
     in case it failed."""
-    model_scores = json.load(open(f"./scores/raw/{model_name}.json"))
+    path_dir_raw = PATH_SCORES / "raw" / model_name
+    model_scores = json.load(open(path_dir_raw / f"{dataset_name}.json"))
     agg_scores = aggregate_scores(model_scores)
-    json.dump(agg_scores, open(f"./scores/agg/{model_name}.json", "w"))
+    path_dir_agg = PATH_SCORES / "agg" / model_name
+    path_dir_agg.mkdir(parents=True, exist_ok=True) 
+    json.dump(agg_scores, open(path_dir_agg / f"{dataset_name}.json", "w"))
 
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=None)
-    #standalone_aggregate("fine_and_gray")
+    evaluate_all_models(include_models=["fine_and_gray"])
+    #standalone_aggregate("survtrace", "seer")
 
 
 # %%
