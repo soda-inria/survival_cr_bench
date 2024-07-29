@@ -51,7 +51,7 @@ DATASET_GRID = {
         "random_state": range(5),
     },
     "seer": {
-        "random_state": range(2, 5),
+        "random_state": range(5),
     },
     "metabric": {
         "random_state": range(5),
@@ -69,11 +69,10 @@ N_ITER_INNER_LOOP_CV = 5
 N_JOBS_CV = None
 
 
-def search_all_dataset_params(dataset_name, model_name, verbose=True):
+def search_all_dataset_params(dataset_name, model_name):
     """Find the best hyper-parameters for a given model and all datasets."""
+    print(f"{'HP search of ' + model_name + ' on ' + dataset_name:=^50}")
     for dataset_params in ParameterGrid(DATASET_GRID[dataset_name]):
-        if verbose:
-            print("dataset_params", dataset_params)
         search_hp(dataset_name, dataset_params, model_name)
 
 
@@ -89,6 +88,9 @@ def search_hp(dataset_name, dataset_params, model_name):
         random_state=dataset_params["random_state"]
     )
     param_grid = HYPER_PARAMS_GRID[model_name]
+
+    print(f"{dataset_params=}")
+    print(f"{param_grid=}")
 
     if model_name == "survtrace" or not SEARCH_HP:
         # Used when nested CV is too expensive.
@@ -129,5 +131,5 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("seer", "survtrace")
+    search_all_dataset_params("weibull", "gbmi")
 # %%

@@ -28,7 +28,7 @@ PATH_SCORES = Path("scores/")
 N_STEPS_TIME_GRID = 20
 
 
-def evaluate_all_models(include_models=None, verbose=True):
+def evaluate_all_models(include_models=None, include_datasets=None, verbose=True):
 
     all_params = get_params()
 
@@ -36,11 +36,17 @@ def evaluate_all_models(include_models=None, verbose=True):
 
     if isinstance(include_models, str):
         include_models = [include_models]
+    
+    if isinstance(include_datasets, str):
+        include_datasets = [include_datasets]
 
     # We iterate over each model, dataset and random_state in best_hyper_parameters/
     for (dataset_name, dataset_params, model_name, model_params) in all_params:
 
-        if include_models is not None and not model_name in include_models:
+        if (
+            include_models is not None and not model_name in include_models
+            or include_datasets is not None and not dataset_name in include_datasets
+        ):
             continue
         
         bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
@@ -175,8 +181,8 @@ def evaluate(
                 y_test,
                 y_pred[event_id],
                 time_grid,
-                shape_censoring=bunch.shape_censoring,
-                scale_censoring=bunch.scale_censoring,
+                shape_censoring=bunch.shape_censoring.loc[y_test.index],
+                scale_censoring=bunch.scale_censoring.loc[y_test.index],
                 event_of_interest=event_id,
             )
             brier_scores = brier_score_incidence_oracle(
@@ -184,8 +190,8 @@ def evaluate(
                 y_test,
                 y_pred[event_id],
                 time_grid,
-                shape_censoring=bunch.shape_censoring,
-                scale_censoring=bunch.scale_censoring,
+                shape_censoring=bunch.shape_censoring.loc[y_test.index],
+                scale_censoring=bunch.scale_censoring.loc[y_test.index],
                 event_of_interest=event_id,  
             )
         else:
@@ -429,8 +435,8 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["fine_and_gray"])
-    #standalone_aggregate("survtrace", "seer")
+    #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
+    standalone_aggregate("DeSurv", "weibull")
 
 
 # %%
