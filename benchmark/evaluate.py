@@ -226,6 +226,8 @@ def evaluate(
 
         truncation_quantiles = [0.25, 0.5, 0.75]
         taus = np.quantile(time_grid, truncation_quantiles)
+        if verbose and event_id == 1:
+            print(f"{taus=}")
         taus = tqdm(
             taus,
             desc=f"c-index at tau for event {event_id}",
@@ -242,7 +244,7 @@ def evaluate(
                 tau=tau,
             )
             c_indices.append(round(ct_index, 4))
-
+        
         event_specific_c_index.append({
             "event": event_id,
             "time_quantile": truncation_quantiles,
@@ -257,19 +259,20 @@ def evaluate(
 
     if is_competing_risk:
         # Accuracy in time
+        truncation_quantiles = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        taus = np.quantile(time_grid, truncation_quantiles)
         if verbose:
             print("Computing accuracy in time")
-
-        truncation_quantiles = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
-        times = np.quantile(time_grid, truncation_quantiles)
+            print(f"{taus=}")
         accuracy = []
         
          # TODO: put it into a function in hazardous._metrics
-        for time_idx in range(len(times)):
-            y_pred_at_t = y_pred[:, :, time_idx]
-            mask = (y_test["event"] == 0) & (y_test["duration"] < times[time_idx])
+        for tau in taus:
+            tau_idx = np.searchsorted(time_grid, tau)
+            y_pred_at_t = y_pred[:, :, tau_idx]
+            mask = (y_test["event"] == 0) & (y_test["duration"] < tau)
             y_pred_class = y_pred_at_t[:, ~mask].argmax(axis=0)
-            y_test_class = y_test["event"] * (y_test["duration"] < times[time_idx])
+            y_test_class = y_test["event"] * (y_test["duration"] < tau)
             y_test_class = y_test_class.loc[~mask]
             accuracy.append(
                 round(
@@ -291,6 +294,9 @@ def evaluate(
             y_pred, y_test["duration_test"], y_test["event"], time_grid
         )
         scores["censlog"] = round(censlog, 4)        
+
+    if verbose:
+        print(scores)
 
     return scores
 
@@ -435,8 +441,7 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
-    standalone_aggregate("DeSurv", "weibull")
+    evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
 
 
 # %%
