@@ -291,7 +291,7 @@ def evaluate(
             print("Computing Censlog")
 
         censlog = CensoredNegativeLogLikelihoodSimple().loss(
-            y_pred, y_test["duration_test"], y_test["event"], time_grid
+            y_pred, y_test["duration"], y_test["event"], time_grid
         )
         scores["censlog"] = round(censlog, 4)        
 
@@ -443,7 +443,8 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
+    #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
+    standalone_aggregate("DSM", "weibull")
 
 
 # %%
