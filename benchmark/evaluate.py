@@ -444,7 +444,7 @@ def standalone_aggregate(model_name, dataset_name):
 
 if __name__ == "__main__":
     #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
-    standalone_aggregate("DSM", "weibull")
+    standalone_aggregate("dqs", "weibull")
 
 
 # %%
