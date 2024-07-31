@@ -332,8 +332,8 @@ def aggregate_scores(seed_scores):
 
     for col in ["fit_time", "predict_time"]:
         agg_score.update({
-            f"mean_{col}": np.mean([score[col] for score in seed_scores]).round(2),
-            f"std_{col}": np.std([score[col] for score in seed_scores]).round(2),
+            f"mean_{col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
+            f"std_{col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
         })
 
     fields = [
@@ -444,7 +444,7 @@ def standalone_aggregate(model_name, dataset_name):
 
 if __name__ == "__main__":
     #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
-    standalone_aggregate("dqs", "weibull")
+    standalone_aggregate("han-nll", "support")
 
 
 # %%
