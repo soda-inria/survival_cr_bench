@@ -285,7 +285,7 @@ def evaluate(
             "accuracy": accuracy,
         }
         if verbose:
-            print(f"{accuracy=:.2f}")
+            print(f"{accuracy=}")
 
     else:
         # Yana loss
@@ -294,7 +294,7 @@ def evaluate(
         )
         scores["censlog"] = round(censlog, 4)        
         if verbose:
-            print(f"{censlog=:.2f}")
+            print(f"{censlog=}")
 
     if verbose:
         print(f"{event_specific_ibs=}")
@@ -434,7 +434,7 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["sksurv_boosting"], include_datasets=["support"])
+    evaluate_all_models(include_models=["aalen_johansen"], include_datasets=["seer"])
     #standalone_aggregate("sumonet", "metabric")
 
 
