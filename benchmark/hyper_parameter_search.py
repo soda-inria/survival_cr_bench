@@ -32,6 +32,16 @@ fine_and_gray_grid = {
     "estimator__max_samples": [10_000],
 }
 
+sksurv_boosting = {
+    "estimator__loss": ["coxph"],
+    "estimator__learning_rate": loguniform(0.01, 0.1),
+    "estimator__n_estimators": randint(50, 100),
+    "estimator__max_depth": randint(2, 10),
+    "estimator__subsample": [1.0],
+    "estimator__criterion": ["friedman_mse"],
+    "estimator__verbose": [1],
+}
+
 HYPER_PARAMS_GRID = {
     "gbmi": gbmi_param_grid,
     "survtrace": survtrace_grid,
@@ -39,6 +49,7 @@ HYPER_PARAMS_GRID = {
     "aalen_johansen": {},
     "deephit": {},
     "random_survival_forest": {},
+    "sksurv_boosting": sksurv_boosting,
 }
 
 DATASET_GRID = {
@@ -71,7 +82,7 @@ N_JOBS_CV = None
 
 def search_all_dataset_params(dataset_name, model_name):
     """Find the best hyper-parameters for a given model and all datasets."""
-    print(f"{'HP search of ' + model_name + ' on ' + dataset_name:=^50}")
+    print(f"{' HP search of ' + model_name + ' on ' + dataset_name + ' ':=^50}")
     for dataset_params in ParameterGrid(DATASET_GRID[dataset_name]):
         search_hp(dataset_name, dataset_params, model_name)
 
@@ -131,5 +142,5 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("weibull", "gbmi")
+    search_all_dataset_params("support", "sksurv_boosting")
 # %%

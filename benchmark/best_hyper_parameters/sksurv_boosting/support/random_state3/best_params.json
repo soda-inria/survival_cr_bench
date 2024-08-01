@@ -1,0 +1,1 @@
+{"model_name": "sksurv_boosting", "random_state": 3, "estimator__criterion": "friedman_mse", "estimator__learning_rate": 0.02514635034662846, "estimator__loss": "coxph", "estimator__max_depth": 9, "estimator__n_estimators": 84, "estimator__subsample": 1.0, "estimator__verbose": 1}

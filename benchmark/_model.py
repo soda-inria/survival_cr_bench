@@ -1,9 +1,10 @@
 from hazardous.survtrace._model import SurvTRACE
-from hazardous._deep_hit import DeepHitEstimator
 from hazardous.survtrace._encoder import SurvFeatureEncoder
-from hazardous.utils import CumulativeIncidencePipeline
+from hazardous._deep_hit import DeepHitEstimator
 from hazardous._gb_multi_incidence import GBMultiIncidence
 from hazardous._aalen_johansen import AalenJohansenEstimator
+from hazardous._sksurv_boosting import SksurvBoosting
+from hazardous.utils import CumulativeIncidencePipeline
 
 
 def init_gbmi(
@@ -94,6 +95,15 @@ def init_random_survival_forest(random_state=None, **model_params):
     ).set_params(**model_params)
 
 
+def init_sksurv_boosting(random_state=None, **model_params):
+    return CumulativeIncidencePipeline(
+        [
+            ("encoder", SurvFeatureEncoder()),
+            ("estimator", SksurvBoosting(random_state=random_state))
+        ]
+    ).set_params(**model_params)
+
+
 INIT_MODEL_FUNCS = {
     "gbmi": init_gbmi,
     "survtrace": init_survtrace,
@@ -101,5 +111,6 @@ INIT_MODEL_FUNCS = {
     "fine_and_gray": init_fine_and_gray,
     "aalen_johansen": init_aalen_johansen,
     "random_survival_forest": init_random_survival_forest,
+    "sksurv_boosting": init_sksurv_boosting,
     # TODO: "init_pchazard"
 }

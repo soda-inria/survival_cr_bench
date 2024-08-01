@@ -8,7 +8,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from sksurv.metrics import concordance_index_ipcw
-from hazardous.utils import make_time_grid
+from hazardous.utils import make_time_grid, make_recarray
 from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
     integrated_brier_score_incidence_oracle,
@@ -284,32 +284,23 @@ def evaluate(
             "time_quantile": truncation_quantiles,
             "accuracy": accuracy,
         }
+        if verbose:
+            print(f"{accuracy=:.2f}")
 
     else:
         # Yana loss
-        if verbose:
-            print("Computing Censlog")
-
         censlog = CensoredNegativeLogLikelihoodSimple().loss(
             y_pred, y_test["duration"], y_test["event"], time_grid
         )
         scores["censlog"] = round(censlog, 4)        
+        if verbose:
+            print(f"{censlog=:.2f}")
 
     if verbose:
         print(f"{event_specific_ibs=}")
         print(f"{event_specific_c_index}")
-        print(f"{accuracy=}")
 
     return scores
-
-
-def make_recarray(y):
-    event = y["event"].values
-    duration = y["duration"].values
-    return np.array(
-        [(event[i], duration[i]) for i in range(y.shape[0])],
-        dtype=[("e", bool), ("t", float)],
-    )
 
 
 def aggregate_scores(seed_scores):
@@ -443,8 +434,8 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    #evaluate_all_models(include_models=["gbmi"], include_datasets=["weibull"])
-    standalone_aggregate("han-nll", "support")
+    evaluate_all_models(include_models=["sksurv_boosting"], include_datasets=["support"])
+    #standalone_aggregate("sumonet", "metabric")
 
 
 # %%
