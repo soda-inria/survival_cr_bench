@@ -8,18 +8,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.utils.validation import check_scalar
 
 
-def _dict_to_recarray(y, cast_event_to_bool=False):
-    if cast_event_to_bool:
-        event_dtype = np.bool_
-    else:
-        event_dtype = y["event"].dtype
-    y_out = np.empty(
-        shape=y["event"].shape[0],
-        dtype=[("event", event_dtype), ("duration", y["duration"].dtype)],
+def make_recarray(y):
+    event = y["event"].values
+    duration = y["duration"].values
+    return np.array(
+        [(event[i], duration[i]) for i in range(y.shape[0])],
+        dtype=[("e", bool), ("t", float)],
     )
-    y_out["event"] = y["event"]
-    y_out["duration"] = y["duration"]
-    return y_out
 
 
 def check_y_survival(y):

@@ -53,7 +53,7 @@ class FineGrayEstimator(BaseEstimator):
         -------
         self : fitted instance of FineGrayEstimator
         """
-        X = self._check_input(X, y)
+        X = self._check_input(X, y, reset=True)
 
         if X.shape[0] > self.max_samples:
             rng = check_random_state(self.random_state)
@@ -114,9 +114,12 @@ class FineGrayEstimator(BaseEstimator):
             The conditional cumulative cumulative incidence at times.
         """
         check_is_fitted(self, "r_crr_results_")
-
+        
+        X = self._check_input(X, y=None, reset=False)
+        
         self._check_feature_names(X, reset=False)
         self._check_n_features(X, reset=False)
+        
 
         X = r_matrix(X)
 
@@ -160,11 +163,11 @@ class FineGrayEstimator(BaseEstimator):
 
         return all_event_y_pred
 
-    def _check_input(self, X, y):
+    def _check_input(self, X, y=None, reset=True):
         if not hasattr(X, "__dataframe__"):
             X = pd.DataFrame(X)
 
-        if not hasattr(y, "__dataframe__"):
+        if y is not None and not hasattr(y, "__dataframe__"):
             raise TypeError(f"'y' must be a Pandas dataframe, got {type(y)}.")
 
         # Check no categories
@@ -176,8 +179,11 @@ class FineGrayEstimator(BaseEstimator):
             )
 
         # Check no constant columns
-        stds = X.std(axis=0)
-        X = X.loc[:, stds > 0]
+        if reset:
+            self.stds = X.std(axis=0)
+
+        X = X.loc[:, self.stds > 0]
+
         return X
 
     def score(self, X, y, shape_censoring=None, scale_censoring=None):

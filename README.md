@@ -101,7 +101,9 @@ Running this function will create two files in the folder `benchmark/best_hyper_
 
 ##### 2.1.2 Fitting and creating the results
 
-
+```shell
+cd benchmark/
+```
 ```python
 from evaluate import evaluate_all_models
 
@@ -127,6 +129,18 @@ cd dqs
 
 Then, read the corresponding README of these projects to run their benchmark.
 
+Running any of these models will create results at `benchmark/scores/raw/<model_name>/<dataset_name.json>`.
+
+To aggregate them, run:
+```shell
+cd benchmark/
+```
+```python
+from evaluate import standalone_aggregate
+
+standalone_aggregate("dqs", "metabric")
+```
+This will create an entry at the respective `benchmark/scores/agg/<model_name>/<dataset_name.json>`, and will allow you to plot the results with functions from the `benchmark/display` directory.
 
 ## 3. Display plots
 

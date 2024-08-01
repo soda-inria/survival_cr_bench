@@ -29,7 +29,7 @@ class RSFEstimator(BaseEstimator):
     event_of_interest : int, default=1,
         The event to perform Fine and Gray regression on.
 
-    max_samples : int, default=100_000,
+    max_fit_samples : int, default=10_000,
         The maximum number of samples to use during fit.
         This is required since the time complexity of this operation is quadratic.
 
@@ -40,10 +40,10 @@ class RSFEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_samples=100_000,
+        max_fit_samples=100_000,
         random_state=0,
     ):
-        self.max_samples = max_samples
+        self.max_fit_samples = max_fit_samples
         self.random_state = random_state
 
     def fit(self, X, y):
@@ -60,13 +60,13 @@ class RSFEstimator(BaseEstimator):
         -------
         self : fitted instance of RSFEstimator
         """
-        X = self._check_input(X, y)
+        X = self._check_input(X, y, reset=True)
 
-        if X.shape[0] > self.max_samples:
+        if X.shape[0] > self.max_fit_samples:
             rng = check_random_state(self.random_state)
             sample_indices = rng.choice(
                 np.arange(X.shape[0]),
-                size=self.max_samples,
+                size=self.max_fit_samples,
                 replace=False,
             )
             X, y = X.iloc[sample_indices], y.iloc[sample_indices]
@@ -86,7 +86,6 @@ class RSFEstimator(BaseEstimator):
         self.parsed = parse_r_list(rsf_object)
         self.times_ = np.array(self.parsed["time.interest"])
         self.y_train = y
-
         return self
 
     def predict_cumulative_incidence(self, X, times=None):
@@ -108,7 +107,7 @@ class RSFEstimator(BaseEstimator):
             The conditional cumulative cumulative incidence at times.
         """
         check_is_fitted(self, "parsed")
-        
+        X = self._check_input(X, y=None, reset=False)
         r_df = r_dataframe(X)
 
         # predict
@@ -156,7 +155,7 @@ class RSFEstimator(BaseEstimator):
         all_event_y_pred = np.asarray(all_event_y_pred)
         return all_event_y_pred
 
-    def _check_input(self, X, y):
+    def _check_input(self, X, y, reset=True):
         if not hasattr(X, "__dataframe__"):
             X = pd.DataFrame(X)
 
@@ -172,8 +171,10 @@ class RSFEstimator(BaseEstimator):
             )
 
         # Check no constant columns
-        stds = X.std(axis=0)
-        X = X.loc[:, stds > 0]
+        if reset:
+            self.stds_ = X.std(axis=0)
+        X = X.loc[:, self.stds_ > 0]
+
         return X
 
     def score(self, X, y):

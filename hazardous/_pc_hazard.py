@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torchtuples as tt
-from pycox.models import DeepHit
+from pycox.models import PCHazard
 from pycox.preprocessing.label_transforms import LabTransDiscreteTime
 from sklearn.model_selection import train_test_split
 from scipy.interpolate import interp1d
@@ -15,13 +15,6 @@ SEED = 0
 
 np.random.seed(1234)
 _ = torch.manual_seed(1234)
-
-
-class LabTransform(LabTransDiscreteTime):
-    def transform(self, durations, events):
-        durations, is_event = super().transform(durations, events > 0)
-        events[is_event == 0] = 0
-        return durations, events.astype("int64")
 
 
 class CauseSpecificNet(torch.nn.Module):
@@ -76,11 +69,10 @@ def get_target(df):
     )
 
 
-class DeepHitEstimator(tt.Model):
+class PCHazardEstimator(tt.Model):
     def __init__(
         self,
-        num_nodes_shared=[64, 64],
-        num_nodes_indiv=[32],
+        num_nodes=[32, 32],
         batch_size=256,
         epochs=512,
         callbacks=[tt.callbacks.EarlyStoppingCycle()],
@@ -88,16 +80,11 @@ class DeepHitEstimator(tt.Model):
         num_durations=10,
         batch_norm=True,
         dropout=None,
-        alpha=0.2,
-        sigma=0.1,
     ):
         self.num_durations = num_durations
-        self.num_nodes_shared = num_nodes_shared
-        self.num_nodes_indiv = num_nodes_indiv
+        self.num_nodes = num_nodes
         self.batch_norm = batch_norm
         self.dropout = dropout
-        self.alpha = alpha
-        self.sigma = sigma
         self.batch_size = batch_size
         self.epochs = epochs
         self.callbacks = callbacks
@@ -113,7 +100,7 @@ class DeepHitEstimator(tt.Model):
         y_train = get_target(y_train_)
         y_val = get_target(y_val_)
 
-        self.labtrans = LabTransform(self.num_durations)
+        self.labtrans = PCHazard.label_transform(self.num_durations)
 
         y_train = self.labtrans.fit_transform(*y_train)
         y_val = self.labtrans.transform(*y_val)
@@ -122,29 +109,22 @@ class DeepHitEstimator(tt.Model):
         self.in_features = X_train.shape[1]
         self.num_risks = y_train[1].max()
         self.times_ = self.labtrans.cuts
-
-        self.net = CauseSpecificNet(
-            in_features=self.in_features,
-            num_nodes_shared=self.num_nodes_shared,
-            num_nodes_indiv=self.num_nodes_indiv,
-            num_risks=self.num_risks,
-            out_features=len(self.labtrans.cuts),
-            batch_norm=self.batch_norm,
-            dropout=self.dropout,
-        )
+        self.net = tt.practical.MLPVanilla(
+            in_features=self.in_features, 
+            num_nodes=self.num_nodes,
+            out_features=self.labtrans.out_features, 
+            batch_norm=self.batch_norm, 
+            dropout=self.dropout)
 
         self.optimizer = tt.optim.AdamWR(
             lr=0.01, decoupled_weight_decay=0.01, cycle_eta_multiplier=0.8
         )
 
-        self.model = DeepHit(
+        self.model = PCHazard(
             net=self.net,
             optimizer=self.optimizer,
-            alpha=self.alpha,
-            sigma=self.sigma,
             duration_index=self.labtrans.cuts,
         )
-
         self.model.fit(
             X_train,
             y_train,
@@ -161,14 +141,15 @@ class DeepHitEstimator(tt.Model):
 
     def predict_cumulative_incidence(self, X, times=None):
         X_ = get_x(X)
-        y_pred = self.model.predict_cif(X_)
-        y_pred = np.swapaxes(y_pred, 0, 2)
-        y_pred = np.swapaxes(y_pred, 1, 2)
+        df_pred = self.model.predict_surv_df(X_)
+        self.times_ = df_pred.index.values
+        y_pred = np.swapaxes(df_pred.values, 0, 1)
+        y_pred = y_pred[:, None, :]
         print(y_pred.shape)
-        survival_pred = 1 - y_pred.sum(axis=1)
-        print(survival_pred.shape)
-        survival_pred = survival_pred[:, None, :]
-        y_pred = np.concatenate((survival_pred, y_pred), axis=1)
+        cif_pred = 1 - y_pred.sum(axis=1)
+        print(cif_pred.shape)
+        cif_pred = cif_pred[:, None, :]
+        y_pred = np.concatenate((y_pred, cif_pred), axis=1)
         print(y_pred.shape)
 
         all_event_y_pred = []
