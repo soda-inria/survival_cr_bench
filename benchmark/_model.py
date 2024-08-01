@@ -29,7 +29,7 @@ def init_gbmi(
 def init_survtrace(
     lr=1e-3,
     batch_size=128,
-    max_epochs=20,
+    max_epochs=100,
     random_state=None,
     **model_params,
 ):

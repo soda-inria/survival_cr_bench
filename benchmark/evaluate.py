@@ -237,12 +237,15 @@ def evaluate(
         for tau in taus:
             tau_idx = np.searchsorted(time_grid, tau)
             y_pred_at_t = y_pred[event_id][:, tau_idx]
-            ct_index, _, _, _, _ = concordance_index_ipcw(
-                make_recarray(y_train_binary),
-                make_recarray(y_test_binary),
-                y_pred_at_t,
-                tau=tau,
-            )
+            if model_name == "aalen_johansen":
+                ct_index = 0.5
+            else:
+                ct_index, _, _, _, _ = concordance_index_ipcw(
+                    make_recarray(y_train_binary),
+                    make_recarray(y_test_binary),
+                    y_pred_at_t,
+                    tau=tau,
+                )
             c_indices.append(round(ct_index, 4))
         
         event_specific_c_index.append({
@@ -434,7 +437,7 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["aalen_johansen"], include_datasets=["seer"])
+    evaluate_all_models(include_models=["aalen_johansen"], include_datasets=["weibull"])
     #standalone_aggregate("sumonet", "metabric")
 
 

@@ -68,7 +68,7 @@ DATASET_GRID = {
         "random_state": range(5),
     },
     "support": {
-        "random_state": range(5),
+        "random_state": range(3, 5),
     },
 }
 
@@ -76,7 +76,7 @@ PATH_HP_SEARCH = Path("./best_hyper_parameters")
 
 SEARCH_HP = True
 N_ITER_OUTER_LOOP_CV = 10
-N_ITER_INNER_LOOP_CV = 5
+N_ITER_INNER_LOOP_CV = 1
 N_JOBS_CV = None
 
 
@@ -103,9 +103,8 @@ def search_hp(dataset_name, dataset_params, model_name):
     print(f"{dataset_params=}")
     print(f"{param_grid=}")
 
-    if model_name == "survtrace" or not SEARCH_HP:
+    if N_ITER_INNER_LOOP_CV == 1:
         # Used when nested CV is too expensive.
-        # Equivalent of setting N_ITER_INNER_LOOP_CV = 1.
         cv = SurvStratifiedSingleSplit()
     else:
         cv = SurvStratifiedShuffleSplit(n_splits=N_ITER_INNER_LOOP_CV)
@@ -127,6 +126,7 @@ def search_hp(dataset_name, dataset_params, model_name):
             refit=False,
             n_jobs=N_JOBS_CV,
             n_iter=N_ITER_OUTER_LOOP_CV,
+            error_score='raise',
         ).fit(X_train, y_train)
 
         best_model_params.update(hp_search.best_params_)
@@ -142,5 +142,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("support", "sksurv_boosting")
+    search_all_dataset_params("support", "survtrace")
+
+
 # %%

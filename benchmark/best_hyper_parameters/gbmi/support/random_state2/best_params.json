@@ -1,0 +1,1 @@
+{"model_name": "gbmi", "random_state": 2, "estimator__learning_rate": 0.02866843561385946, "estimator__max_depth": 8, "estimator__n_iter": 39, "estimator__n_iter_before_feedback": 41, "estimator__n_times": 1}
