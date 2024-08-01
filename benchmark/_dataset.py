@@ -62,7 +62,7 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
     X[categorical_features] = X[categorical_features].astype("category")
     X[numerical_features] = X[numerical_features].astype("float64")
 
-    y = df[["duration", "event"]]
+    y = df[["event", "duration"]]
 
     return split(X, y, dataset_params)
 
