@@ -1,1 +1,1 @@
-{"model_name": "gbmi", "random_state": 2, "estimator__learning_rate": 0.08515231184553244, "estimator__max_depth": 4, "estimator__n_iter": 40, "estimator__n_iter_before_feedback": 6, "estimator__n_times": 4}
+{"model_name": "gbmi", "random_state": 2, "estimator__n_times": 1, "estimator__n_iter_before_feedback": 20, "estimator__n_iter": 100, "estimator__max_depth": 9, "estimator__learning_rate": 0.01}

@@ -1,0 +1,12 @@
+\begin{tabular}{lllll}
+dataset_name & \multicolumn{2}{r}{METABRIC} & \multicolumn{2}{r}{SUPPORT} \\
+ & IBS & Cen-log-simple & IBS & Cen-log-simple \\
+model_name &  &  &  &  \\
+SurvTRACE & 0.191 ± 0.022 & 0.188 ± 0.005 & 2.114 ± 0.148 & 1.61 ± 0.021 \\
+SumoNet & 0.177 ± 0.008 & 0.195 ± 0.005 & 2.271 ± 0.052 & 1.822 ± 0.023 \\
+Han et al. (nll) & 0.189 ± 0.006 & 0.252 ± 0.005 & 2.559 ± 0.168 & 3.376 ± 0.201 \\
+Han et al. (game) & 0.191 ± 0.011 & 0.254 ± 0.004 & 2.541 ± 0.142 & 3.343 ± 0.207 \\
+Gradient Boosting Survival & \font-weightbold 0.169 ± 0.011 & \text-decorationunderline 0.187 ± 0.004 & \text-decorationunderline 1.974 ± 0.024 & \text-decorationunderline 1.575 ± 0.016 \\
+DQS & 0.173 ± 0.018 & 0.202 ± 0.005 & 2.223 ± 0.04 & 2.586 ± 0.023 \\
+ MultiIncidence & \text-decorationunderline 0.171 ± 0.013 & \font-weightbold 0.183 ± 0.004 & \font-weightbold 1.968 ± 0.027 & \font-weightbold 1.528 ± 0.018 \\
+\end{tabular}

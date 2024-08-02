@@ -19,7 +19,6 @@ def init_gbmi(
                 GBMultiIncidence(
                     loss="inll",
                     show_progressbar=True,
-                    n_times=1,
                 ),
             ),
         ]

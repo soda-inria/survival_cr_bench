@@ -262,7 +262,7 @@ def evaluate(
 
     if is_competing_risk:
         # Accuracy in time
-        truncation_quantiles = [0.125, 0.25, 0.375, 0.5, 0.625, 0.75, 0.875]
+        truncation_quantiles = np.arange(0.125, 1, 0.125).tolist()
         taus = np.quantile(time_grid, truncation_quantiles)
         if verbose:
             print("Computing accuracy in time")
@@ -437,7 +437,7 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["aalen_johansen"], include_datasets=["weibull"])
+    evaluate_all_models(include_models=["survtrace"], include_datasets=["support", "metabric"])
     #standalone_aggregate("sumonet", "metabric")
 
 

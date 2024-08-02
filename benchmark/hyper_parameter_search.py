@@ -15,17 +15,28 @@ from _model import INIT_MODEL_FUNCS
 from _dataset import LOAD_DATASET_FUNCS
 
 
+# gbmi_param_grid = {
+#     "estimator__learning_rate": loguniform(0.01, 0.1),
+#     "estimator__max_depth": randint(2, 10),
+#     "estimator__n_iter": randint(5, 50),
+#     "estimator__n_times": randint(1, 5),
+#     "estimator__n_iter_before_feedback": randint(5, 50),
+# }
 gbmi_param_grid = {
-    "estimator__learning_rate": loguniform(0.01, 0.1),
-    "estimator__max_depth": randint(2, 10),
-    "estimator__n_iter": randint(5, 50),
-    "estimator__n_times": randint(1, 5),
-    "estimator__n_iter_before_feedback": randint(5, 50),
+    "estimator__learning_rate": [0.01],
+    "estimator__max_depth": [9],
+    "estimator__n_iter": [100],
+    "estimator__n_times": [1],
+    "estimator__n_iter_before_feedback": [20],
 }
 
+# survtrace_grid = {
+#     "lr": loguniform(1e-5, 1e-3),
+#     "batch_size": [256, 512, 1024],
+# }
 survtrace_grid = {
-    "lr": loguniform(1e-5, 1e-3),
-    "batch_size": [256, 512, 1024],
+    "lr": [0.001],
+    "batch_size": [256],
 }
 
 fine_and_gray_grid = {
@@ -68,7 +79,7 @@ DATASET_GRID = {
         "random_state": range(5),
     },
     "support": {
-        "random_state": range(3, 5),
+        "random_state": range(5),
     },
 }
 
@@ -114,8 +125,12 @@ def search_hp(dataset_name, dataset_params, model_name):
         "random_state": dataset_params["random_state"],
     }
 
-    if not SEARCH_HP or not param_grid:
-        param_grid = {}
+    if not SEARCH_HP:
+        print("No search for HP")
+        sk_param_grid = ParameterGrid(param_grid)
+        if len(sk_param_grid) == 1:
+            best_model_params.update(sk_param_grid[0])
+        print(f"{best_model_params=}")
     
     else:
         hp_search = RandomizedSearchCV(
@@ -142,7 +157,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("support", "survtrace")
+    search_all_dataset_params("seer", "gbmi")
 
 
 # %%

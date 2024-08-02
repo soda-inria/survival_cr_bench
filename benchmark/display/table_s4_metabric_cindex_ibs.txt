@@ -1,0 +1,10 @@
+\begin{tabular}{lllllll}
+ & model_name & C-index 0.25 & C-index 0.5 & C-index 0.75 & S Cen-log-simple & IBS \\
+0 & Han et al. (nll) & 0.617 ± 0.033 & 0.614 ± 0.02 & 0.62 ± 0.021 & 2.559 ± 0.168 & 0.189 ± 0.006 \\
+1 & Han et al. (game) & \font-weightbold 0.701 ± 0.029 & \font-weightbold 0.661 ± 0.029 & \text-decorationunderline 0.635 ± 0.024 & 2.541 ± 0.142 & 0.191 ± 0.011 \\
+2 & DQS & 0.652 ± 0.009 & 0.622 ± 0.004 & 0.626 ± 0.007 & 2.223 ± 0.04 & 0.173 ± 0.018 \\
+3 & SumoNet & 0.616 ± 0.07 & 0.592 ± 0.057 & 0.574 ± 0.059 & 2.271 ± 0.052 & 0.177 ± 0.008 \\
+4 & SurvTRACE & 0.654 ± 0.014 & 0.637 ± 0.008 & 0.634 ± 0.01 & 2.114 ± 0.148 & 0.191 ± 0.022 \\
+5 & Gradient Boosting Survival & 0.64 ± 0.013 & \text-decorationunderline 0.64 ± 0.012 & \font-weightbold 0.639 ± 0.01 & \text-decorationunderline 1.974 ± 0.024 & \font-weightbold 0.169 ± 0.011 \\
+6 &  MultiIncidence & \text-decorationunderline 0.661 ± 0.011 & 0.636 ± 0.012 & 0.61 ± 0.01 & \font-weightbold 1.968 ± 0.027 & \text-decorationunderline 0.171 ± 0.013 \\
+\end{tabular}
