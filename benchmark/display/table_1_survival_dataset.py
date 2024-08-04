@@ -3,12 +3,10 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from matplotlib import pyplot as plt
 
 
 model_remaming = {
-    "gbmi": " MultiIncidence",
+    "gbmi": "MultiIncidence",
     "survtrace": "SurvTRACE",
     "deephit": "DeepHit",
     "sumonet": "SumoNet",
@@ -16,14 +14,14 @@ model_remaming = {
     "han-nll": "Han et al. (nll)",
     "han-bll_game": "Han et al. (game)",
     "sksurv_boosting": "Gradient Boosting Survival",
-    "random_survival_forest": "RandomSurvivalForest",
+    "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
     "pchazard": "PCHazard",
 }
 
 include_datasets = ["support", "metabric"]
-filename = "table_1_survival_dataset_latex.txt"
+filename = "table_1_survival_dataset.txt"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -65,11 +63,24 @@ df["dataset_name"] = df["dataset_name"].str.upper()
 
 df = df.pivot(index="model_name", columns="dataset_name", values=["IBS", "Cen-log-simple"])
 df.columns = df.columns.swaplevel(0, 1).sortlevel()[0]
-df.sort_index(ascending=False, inplace=True)
+
+order = {
+    "Random Survival Forests": -1,
+    "DeepHit": 0,
+    "PCHazard": 1,
+    "Han et al. (nll)": 2,
+    "Han et al. (game)": 3,
+    "DQS": 4,
+    "SumoNet": 5,
+    "SurvTRACE": 6,
+    "Gradient Boosting Survival": 7,
+    "MultiIncidence": 8,
+}
+df = df.sort_index(key=lambda x: x.map(order))
 
 def bold_and_underline(x):
     style = [""] * len(x)
-    order = np.argsort(x)
+    order = np.argsort(x.values)
     style[order[0]] = "font-weight: bold"
     style[order[1]] = "text-decoration: underline"
     return style

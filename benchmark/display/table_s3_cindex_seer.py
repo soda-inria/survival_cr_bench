@@ -13,7 +13,7 @@ model_remaming = {
     "deephit": "DeepHit",
     "DSM": "DSM",
     "DeSurv": "DeSurv",
-    "random_survival_forest": "RandomSurvivalForest",
+    "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
 }
@@ -59,7 +59,7 @@ df = df.pivot(index="model_name", columns=["Time Horizon Quantile", "Event"], va
 order = {
     "Aalen Johansen": 0,
     "Fine & Gray": 1,
-    "RandomSurvivalForest": 2,
+    "Random Survival Forests": 2,
     "DeepHit": 3,
     "DSM": 4,
     "DeSurv": 5,
@@ -70,7 +70,7 @@ df = df.sort_index(key=lambda x: x.map(order))
 
 def bold_and_underline(x):
     style = [""] * len(x)
-    order = np.argsort(x)[::-1]
+    order = np.argsort(x.values)[::-1]
     style[order[0]] = "font-weight: bold"
     style[order[1]] = "text-decoration: underline"
     return style

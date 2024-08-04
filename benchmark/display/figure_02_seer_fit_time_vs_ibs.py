@@ -13,7 +13,7 @@ model_remaming = {
     "deephit": "DeepHit",
     "DSM": "DSM",
     "DeSurv": "DeSurv",
-    "random_survival_forest": "RandomSurvivalForest",
+    "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
 }
@@ -59,7 +59,7 @@ hue_order = [
     #"DeepHit",
     "DSM",
     "DeSurv", 
-    #"Random Survival Forests",
+    "Random Survival Forests",
     "Fine & Gray",
     "Aalen Johansen",
 ]

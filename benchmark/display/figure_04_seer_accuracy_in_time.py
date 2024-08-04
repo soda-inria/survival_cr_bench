@@ -13,7 +13,7 @@ model_remaming = {
     "deephit": "DeepHit",
     "DSM": "DSM",
     "DeSurv": "DeSurv",
-    "random_survival_forest": "RandomSurvivalForest",
+    "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
 }
@@ -49,6 +49,7 @@ for path_model in path_scores.glob("*"):
             )
 
 df = pd.DataFrame(results)
+df["model_name"] = df["model_name"].map(model_remaming)
 
 hue_order = [
     "MultiIncidence",
@@ -60,6 +61,9 @@ hue_order = [
     "Fine & Gray",
     "Aalen Johansen",
 ]
+order = dict(zip(hue_order, range(len(hue_order))))
+df["order"] = df["model_name"].map(order)
+df = df.sort_values("order", ascending=False).drop("order", axis=1)
 
 palette = dict(
     zip(
@@ -68,8 +72,7 @@ palette = dict(
     )
 )
 
-#fig, ax = plt.subplots(figsize=(3, 2), dpi=300)
-fig, ax = plt.subplots(figsize=(5, 3), dpi=300)
+fig, ax = plt.subplots(figsize=(6, 3), dpi=300)
 
 sns.lineplot(
     df,
@@ -78,18 +81,18 @@ sns.lineplot(
     hue="model_name",
     ax=ax,
     legend=False,
-    #hue_order=hue_order,
+    hue_order=hue_order,
     #palette=palette,
 )
-for model_name in df["model_name"].unique():
-    df_model = df.query("model_name == @model_name")
+# for model_name in df["model_name"].unique():
+#     df_model = df.query("model_name == @model_name")
 
-    plt.fill_between(
-        x=df_model["q"],
-        y1=df_model["mean_acc"] - df_model["std_acc"],
-        y2=df_model["mean_acc"] + df_model["std_acc"],
-        alpha=.4,
-    )
+#     plt.fill_between(
+#         x=df_model["q"],
+#         y1=df_model["mean_acc"] - df_model["std_acc"],
+#         y2=df_model["mean_acc"] + df_model["std_acc"],
+#         alpha=.4,
+#     )
 
 sns.scatterplot(
     df,
@@ -100,13 +103,10 @@ sns.scatterplot(
     s=50,
     zorder=100,
     style="model_name",
+    hue_order=hue_order,
     # markers=["P", (4, 1, 0), "^", (4, 1, 45), "s", "X", ],
-    #hue_order=hue_order,
     #palette=palette,
 )
-
-plt.xlim([.125, .850])
-plt.grid()
 
 quantiles = np.arange(0.125, 1, 0.125)
 ax.set_xticks(
@@ -119,9 +119,10 @@ ax.set_xticks(
 #     ax.get_yticklabels(),
 #     fontsize=10,
 # )
-# ax.grid()
-# ax.set_xlabel("Time quantiles", fontsize=10)
-# ax.set_ylabel("Accuracy in time", fontsize=10)
+ax.set_xlim([.125, .900])
+ax.grid()
+ax.set_xlabel("Time quantiles", fontsize=10)
+ax.set_ylabel("Accuracy in time", fontsize=10)
 
 # h, l = ax.get_legend_handles_labels()
 # for h_ in h:
@@ -141,12 +142,11 @@ ax.set_xticks(
 #     h_.set_markersize(8)
 # ax.legend(h, l)
 
-# sns.move_legend(ax, "lower left", bbox_to_anchor=(1, 0))
+sns.move_legend(ax, "lower left", bbox_to_anchor=(1, 0))
 
-# sns.despine()
-
-# file_path = f"/Users/{USER}/Desktop/acc_in_time.png"
-# fig.savefig(file_path, format="png", dpi=300, bbox_inches="tight")
+sns.despine()
+plt.tight_layout()
+plt.savefig(filename)
 
 
 # %%
