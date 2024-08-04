@@ -85,7 +85,7 @@ DATASET_GRID = {
 
 PATH_HP_SEARCH = Path("./best_hyper_parameters")
 
-SEARCH_HP = True
+SEARCH_HP = False
 N_ITER_OUTER_LOOP_CV = 10
 N_ITER_INNER_LOOP_CV = 1
 N_JOBS_CV = None
@@ -125,7 +125,7 @@ def search_hp(dataset_name, dataset_params, model_name):
         "random_state": dataset_params["random_state"],
     }
 
-    if not SEARCH_HP:
+    if not SEARCH_HP or not param_grid:
         print("No search for HP")
         sk_param_grid = ParameterGrid(param_grid)
         if len(sk_param_grid) == 1:
@@ -157,7 +157,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("seer", "gbmi")
+    search_all_dataset_params("metabric", "random_survival_forest")
 
 
 # %%

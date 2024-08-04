@@ -40,7 +40,7 @@ class RSFEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_fit_samples=100_000,
+        max_fit_samples=1_000,
         random_state=0,
     ):
         self.max_fit_samples = max_fit_samples
@@ -159,7 +159,7 @@ class RSFEstimator(BaseEstimator):
         if not hasattr(X, "__dataframe__"):
             X = pd.DataFrame(X)
 
-        if not hasattr(y, "__dataframe__"):
+        if y is not None and not hasattr(y, "__dataframe__"):
             raise TypeError(f"'y' must be a Pandas dataframe, got {type(y)}.")
 
         # Check no categories

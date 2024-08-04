@@ -437,8 +437,8 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["survtrace"], include_datasets=["support", "metabric"])
-    #standalone_aggregate("sumonet", "metabric")
+    evaluate_all_models(include_models=["random_survival_forest"], include_datasets=["weibull"])
+    #standalone_aggregate("survtrace", "support")
 
 
 # %%
