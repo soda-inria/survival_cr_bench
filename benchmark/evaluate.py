@@ -26,6 +26,7 @@ from hyper_parameter_search import PATH_HP_SEARCH
 DEBUG_N_SUBSAMPLE = None
 PATH_SCORES = Path("scores/")
 N_STEPS_TIME_GRID = 20
+N_TEST_C_INDEX = None
 
 
 def evaluate_all_models(include_models=None, include_datasets=None, verbose=True):
@@ -224,6 +225,19 @@ def evaluate(
         y_train_binary["event"] = (y_train["event"] == event_id)
         y_test_binary["event"] = (y_test["event"] == event_id)
 
+        y_pred_c_index = y_pred.copy()
+
+        if N_TEST_C_INDEX is not None:
+            y_test_binary = y_test_binary.reset_index(drop=True)
+            y_test_binary, _ = train_test_split(
+                y_test_binary,
+                stratify=y_test_binary["event"],
+                train_size=N_TEST_C_INDEX,
+                shuffle=True,
+                random_state=dataset_params["random_state"],
+            )
+            y_pred_c_index = y_pred_c_index[:, y_test_binary.index, :]
+
         truncation_quantiles = [0.25, 0.5, 0.75]
         taus = np.quantile(time_grid, truncation_quantiles)
         if verbose and event_id == 1:
@@ -236,7 +250,7 @@ def evaluate(
         c_indices = []
         for tau in taus:
             tau_idx = np.searchsorted(time_grid, tau)
-            y_pred_at_t = y_pred[event_id][:, tau_idx]
+            y_pred_at_t = y_pred_c_index[event_id][:, tau_idx]
             if model_name == "aalen_johansen":
                 ct_index = 0.5
             else:
@@ -437,7 +451,7 @@ def standalone_aggregate(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["random_survival_forest"], include_datasets=["weibull"])
+    evaluate_all_models(include_models=["random_survival_forest"], include_datasets=["support"])
     #standalone_aggregate("survtrace", "support")
 
 

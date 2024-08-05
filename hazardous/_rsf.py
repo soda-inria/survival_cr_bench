@@ -40,7 +40,7 @@ class RSFEstimator(BaseEstimator):
 
     def __init__(
         self,
-        max_fit_samples=1_000,
+        max_fit_samples=None,
         random_state=0,
     ):
         self.max_fit_samples = max_fit_samples
@@ -61,8 +61,10 @@ class RSFEstimator(BaseEstimator):
         self : fitted instance of RSFEstimator
         """
         X = self._check_input(X, y, reset=True)
+        
+        self.max_fit_samples_ = self.max_fit_samples or X.shape[0]
 
-        if X.shape[0] > self.max_fit_samples:
+        if X.shape[0] > self.max_fit_samples_:
             rng = check_random_state(self.random_state)
             sample_indices = rng.choice(
                 np.arange(X.shape[0]),
@@ -73,7 +75,7 @@ class RSFEstimator(BaseEstimator):
 
         event, duration = check_y_survival(y)
         self.event_ids_ = np.array(sorted(list(set([0]) | set(event))))
-
+        print(X.shape, y.shape)
         df = pd.concat([X, y], axis=1)
         cols = df.columns.to_list()
         names = " + ".join(cols)
@@ -107,7 +109,7 @@ class RSFEstimator(BaseEstimator):
             The conditional cumulative cumulative incidence at times.
         """
         check_is_fitted(self, "parsed")
-        X = self._check_input(X, y=None, reset=False)
+
         r_df = r_dataframe(X)
 
         # predict
@@ -118,9 +120,15 @@ class RSFEstimator(BaseEstimator):
 
         # make the same format as SurvivalBoost, 
         # where the first column is the survival function
-        survival_pred = 1 - cif_pred.sum(axis=2)
-        survival_pred = survival_pred[:, :, None]
-        y_pred =np.concatenate((survival_pred, cif_pred), axis=2)
+        if len(self.event_ids_) > 2:
+            survival_pred = 1 - cif_pred.sum(axis=2)
+            survival_pred = survival_pred[:, :, None]
+        else:
+            survival_pred = np.array(object_pred["survival"])
+            survival_pred = survival_pred[:, :, None]
+            cif_pred = 1 - survival_pred.sum(axis=2)
+            cif_pred = cif_pred[:, :, None]
+        y_pred = np.concatenate((survival_pred, cif_pred), axis=2)
         y_pred = y_pred.swapaxes(1, 2)
         
         all_event_y_pred = []
@@ -159,7 +167,7 @@ class RSFEstimator(BaseEstimator):
         if not hasattr(X, "__dataframe__"):
             X = pd.DataFrame(X)
 
-        if y is not None and not hasattr(y, "__dataframe__"):
+        if not hasattr(y, "__dataframe__"):
             raise TypeError(f"'y' must be a Pandas dataframe, got {type(y)}.")
 
         # Check no categories
