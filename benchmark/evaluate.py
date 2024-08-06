@@ -26,7 +26,7 @@ from hyper_parameter_search import PATH_HP_SEARCH
 DEBUG_N_SUBSAMPLE = None
 PATH_SCORES = Path("scores/")
 N_STEPS_TIME_GRID = 20
-N_TEST_C_INDEX = None
+N_TEST_C_INDEX = 10_000
 
 
 def evaluate_all_models(include_models=None, include_datasets=None, verbose=True):
@@ -320,14 +320,14 @@ def evaluate(
     return scores
 
 
-def aggregate_scores(seed_scores):
+def aggregate_scores(seed_scores, already_aggregated=False):
     """Aggregate model seeds
     """
-    agg_score = _aggregate_scores(seed_scores)
+    agg_score = _aggregate_scores(seed_scores, already_aggregated)
 
     if seed_scores[0]["is_competing_risk"]:
         agg_score.update(
-            _agg_competing_risk(seed_scores)
+            _agg_competing_risk(seed_scores, already_aggregated)
         )
         agg_score["average_ibs"] = np.mean([
             event_score["mean_ibs"]
@@ -335,14 +335,22 @@ def aggregate_scores(seed_scores):
         ]).round(4)
     else:
         agg_score.update(
-            _agg_survival(seed_scores)
+            _agg_survival(seed_scores, already_aggregated)
         )
 
-    for col in ["fit_time", "predict_time"]:
-        agg_score.update({
-            f"mean_{col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
-            f"std_{col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
-        })
+    if already_aggregated:
+        for col in ["mean_fit_time", "mean_predict_time"]:
+            agg_col = col.split("mean_")[1]
+            agg_score.update({
+                f"mean_{agg_col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
+                f"std_{agg_col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
+            })
+    else:
+        for col in ["fit_time", "predict_time"]:
+            agg_score.update({
+                f"mean_{col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
+                f"std_{col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
+            })
 
     fields = [
         "is_competing_risk",
@@ -357,7 +365,7 @@ def aggregate_scores(seed_scores):
     return agg_score
 
 
-def _aggregate_scores(scores):
+def _aggregate_scores(scores, already_aggregated=False):
     agg_score = dict()
     
     # Brier score
@@ -366,8 +374,12 @@ def _aggregate_scores(scores):
     for event_idx in range(n_event):
         brier_scores = []
         for score in scores:
+            if already_aggregated:
+                key = "mean_brier_scores"
+            else:
+                key = "brier_scores"
             brier_scores.append(
-                score[f"event_specific_brier_scores"][event_idx]["brier_score"]
+                score[f"event_specific_brier_scores"][event_idx][key]
             )
         brier_scores = np.vstack(brier_scores)
         event_specific_brier_scores.append({
@@ -381,7 +393,11 @@ def _aggregate_scores(scores):
     # IBS
     event_specific_ibs = []
     for event_idx in range(n_event):
-        ibs = [score["event_specific_ibs"][event_idx]["ibs"] for score in scores]
+        if already_aggregated:
+            key = "mean_ibs"
+        else:
+            key = "ibs"
+        ibs = [score["event_specific_ibs"][event_idx][key] for score in scores]
         event_specific_ibs.append({
             "event": event_idx + 1,
             "mean_ibs": np.mean(ibs).round(4),
@@ -390,36 +406,63 @@ def _aggregate_scores(scores):
     agg_score["event_specific_ibs"] = event_specific_ibs
 
     # C-index
-    time_quantiles = scores[0]["event_specific_c_index"][0]["time_quantile"]
-    q_specific_c_index = []
-    for idx, q in enumerate(time_quantiles):
-        mean_c_index, std_c_index = [], []
-        for event_idx in range(n_event):
-            c_indices = [
-                score["event_specific_c_index"][event_idx]["c_index"][idx]
-                for score in scores
-            ]
-            mean_c_index.append(np.mean(c_indices).round(4))
-            std_c_index.append(np.std(c_indices).round(4))
-        q_specific_c_index.append({
-            "time_quantile": round(q, 4),
-            "event": list(range(1, n_event+1)),
-            "mean_c_index": mean_c_index,
-            "std_c_index": std_c_index,
-        })
+    if already_aggregated:
+        time_quantiles = [score["time_quantile"] for score in scores[0]["c_index"]]
+        q_specific_c_index = []
+        for idx, q in enumerate(time_quantiles):
+            mean_c_index, std_c_index = [], []
+            for event_idx in range(n_event):
+                c_indices = [
+                    score["c_index"][idx]["mean_c_index"][event_idx]
+                    for score in scores
+                ]
+                mean_c_index.append(np.mean(c_indices).round(4))
+                std_c_index.append(np.std(c_indices).round(4))
+            q_specific_c_index.append({
+                "time_quantile": round(q, 4),
+                "event": list(range(1, n_event+1)),
+                "mean_c_index": mean_c_index,
+                "std_c_index": std_c_index,
+            })
+
+    else:
+        time_quantiles = scores[0]["event_specific_c_index"][0]["time_quantile"]
+        q_specific_c_index = []
+        for idx, q in enumerate(time_quantiles):
+            mean_c_index, std_c_index = [], []
+            for event_idx in range(n_event):
+                c_indices = [
+                    score["event_specific_c_index"][event_idx]["c_index"][idx]
+                    for score in scores
+                ]
+                mean_c_index.append(np.mean(c_indices).round(4))
+                std_c_index.append(np.std(c_indices).round(4))
+            q_specific_c_index.append({
+                "time_quantile": round(q, 4),
+                "event": list(range(1, n_event+1)),
+                "mean_c_index": mean_c_index,
+                "std_c_index": std_c_index,
+            })
 
     agg_score["c_index"] = q_specific_c_index
 
     return agg_score
 
 
-def _agg_competing_risk(scores):
+def _agg_competing_risk(scores, already_aggregated=False):
     # Accuracy in time
     agg_score = dict()
 
-    time_quantiles = scores[0]["accuracy_in_time"]["time_quantile"]
+    if already_aggregated:
+        quantile_name = "time_quantiles"
+        metric_to_aggregate = "mean_accuracy"
+    else:
+        quantile_name = "time_quantile"  # TODO: fix 
+        metric_to_aggregate = "accuracy"
+
+    time_quantiles = scores[0]["accuracy_in_time"][quantile_name]
     accuracies = np.vstack([
-        score["accuracy_in_time"]["accuracy"] for score in scores
+        score["accuracy_in_time"][metric_to_aggregate] for score in scores
     ])
     agg_score["accuracy_in_time"] = {
         "time_quantiles": time_quantiles,
@@ -429,30 +472,35 @@ def _agg_competing_risk(scores):
     return agg_score
 
 
-def _agg_survival(scores):
+def _agg_survival(scores, already_aggregated=False):
     # censlog
-    censlog = [score["censlog"] for score in scores]
+    if already_aggregated:
+        metric_to_aggregate = "mean_censlog"
+    else:
+        metric_to_aggregate = "censlog"
+    censlog = [score[metric_to_aggregate] for score in scores]
     return {
         "mean_censlog": np.mean(censlog).round(4),
         "std_censlog": np.std(censlog).round(4),
     }
 
 
-def standalone_aggregate(model_name, dataset_name):
+def standalone_aggregate(model_name, dataset_name, already_aggregated=False):
     """Run to restart the aggregation from the raw scores checkpoint
     in case it failed."""
     path_dir_raw = PATH_SCORES / "raw" / model_name
     model_scores = json.load(open(path_dir_raw / f"{dataset_name}.json"))
-    agg_scores = aggregate_scores(model_scores)
+    agg_scores = aggregate_scores(model_scores, already_aggregated)
     path_dir_agg = PATH_SCORES / "agg" / model_name
     path_dir_agg.mkdir(parents=True, exist_ok=True) 
     json.dump(agg_scores, open(path_dir_agg / f"{dataset_name}.json", "w"))
 
+
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["random_survival_forest"], include_datasets=["support"])
-    #standalone_aggregate("survtrace", "support")
+    #evaluate_all_models(include_models=["sksurv_boosting"], include_datasets=["kkbox"])
+    standalone_aggregate("deephit", "kkbox_100k", already_aggregated=True)
 
 
 # %%

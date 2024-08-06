@@ -81,13 +81,17 @@ DATASET_GRID = {
     "support": {
         "random_state": range(5),
     },
+    "kkbox": {
+        "random_state": range(5),
+        "n_samples": [100_000],
+    }
 }
 
 PATH_HP_SEARCH = Path("./best_hyper_parameters")
 
 SEARCH_HP = False
 N_ITER_OUTER_LOOP_CV = 10
-N_ITER_INNER_LOOP_CV = 1
+N_ITER_INNER_LOOP_CV = 5
 N_JOBS_CV = None
 
 
@@ -127,11 +131,6 @@ def search_hp(dataset_name, dataset_params, model_name):
 
     if not SEARCH_HP or not param_grid:
         print("No search for HP")
-        sk_param_grid = ParameterGrid(param_grid)
-        if len(sk_param_grid) == 1:
-            best_model_params.update(sk_param_grid[0])
-        print(f"{best_model_params=}")
-    
     else:
         hp_search = RandomizedSearchCV(
             model,
@@ -157,7 +156,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("metabric", "random_survival_forest")
+    search_all_dataset_params("kkbox", "sksurv_boosting")
 
 
 # %%

@@ -1,0 +1,6 @@
+\begin{tabular}{lllllll}
+ & model_name & C-index 0.25 & C-index 0.5 & C-index 0.75 & S Cen-log-simple & IBS \\
+1 & DQS & 0.87 ± 0.003 & 0.83 ± 0.003 & \text-decorationunderline 0.814 ± 0.004 & 3.791 ± 0.029 & 0.119 ± 0.0 \\
+6 & SurvTRACE & \font-weightbold 0.872 ± 0.009 & \font-weightbold 0.844 ± 0.007 & \font-weightbold 0.828 ± 0.006 & \text-decorationunderline 1.27 ± 0.008 & \text-decorationunderline 0.111 ± 0.001 \\
+3 &  MultiIncidence & \text-decorationunderline 0.872 ± 0.002 & \text-decorationunderline 0.835 ± 0.004 & 0.653 ± 0.043 & \font-weightbold 1.239 ± 0.037 & \font-weightbold 0.106 ± 0.003 \\
+\end{tabular}

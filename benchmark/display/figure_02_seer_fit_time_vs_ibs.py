@@ -127,6 +127,7 @@ ax.set_ylabel("Mean IBS", fontsize=13)
 ax.grid(axis="x")
 
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
+plt.tight_layout()
 plt.savefig(filename)
 
 # %%

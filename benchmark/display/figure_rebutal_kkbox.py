@@ -8,21 +8,21 @@ from matplotlib import pyplot as plt
 
 
 model_remaming = {
-    "gbmi": "MultiIncidence",
-    "survtrace": "SurvTRACE",
-    "deephit": "DeepHit",
-    "sumonet": "SumoNet",
-    "dqs": "DQS",
-    "han-nll": "Han et al. (nll)",
-    "han-bll_game": "Han et al. (game)",
-    "sksurv_boosting": "Gradient Boosting Survival",
-    "random_survival_forest": "RandomSurvivalForest",
-    "fine_and_gray": "Fine & Gray",
-    "aalen_johansen": "Aalen Johansen",
-    "pchazard": "PCHazard",
+    "gbmi": "MultiIncidence (CPU)",
+    "survtrace": "SurvTRACE (GPU)",
+    "deephit": "DeepHit (GPU)",
+    "sumonet": "SumoNet (GPU)",
+    "dqs": "DQS (GPU)",
+    "han-nll": "Han et al. (nll) (GPU)",
+    "han-bll_game": "Han et al. (nll_game) (GPU)",
+    "sksurv_boosting": "Gradient Boosting Survival (CPU)",
+    "random_survival_forest": "RSF (CPU)",
+    "pchazard": "PCHazard (GPU)",
 }
-include_datasets = ["support", "metabric"]
-filename = "figure_05_fit_time_vs_ibs_survival.png"
+include_datasets = ["kkbox_100k", "kkbox_1M"]
+metric = "ibs"
+
+filename = "figure_rebutal_kkbox.png"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -51,23 +51,28 @@ for path_model in path_scores.glob("*"):
 df = pd.DataFrame(results)
 df["model_name"] = df["model_name"].map(model_remaming)
 
-# hue_order = [
-#     "MultiIncidence",
-#     "SurvTRACE",
-#     # "DeepHit",
-#     "DSM",
-#     "DeSurv",
-#     "Random Survival Forests",
-#     "Fine & Gray",
-#     "Aalen Johansen",
-# ]
+order = {
+    "DeepHit (GPU)": 0,
+    "PCHazard (GPU)": 1,
+#    "Han et al. (nll)": 2,
+#    "Han et al. (bll_game)": 3,
+    "DQS (GPU)": 4,
+#    "SumoNet": 5,
+    "SurvTRACE (GPU)": 6,
+    "RSF (CPU)": 7,
+#    "Gradient Boosting Survival": 8, 
+    "MultiIncidence (CPU)": 9,
+}
 
-# palette = dict(
-#     zip(
-#         hue_order,
-#         sns.color_palette("colorblind", n_colors=len(hue_order))
-#     )
-# )
+df["order"] = df["model_name"].map(order)
+df = df.sort_values("order").drop("order", axis=1)
+
+palette = dict(
+    zip(
+        list(order),
+        sns.color_palette("colorblind", n_colors=len(order))
+    )
+)
 
 c = "black"
 plt.errorbar(
@@ -94,18 +99,17 @@ ax = sns.scatterplot(
     #hue_order=hue_order,
     style="dataset_name",
     s=200,
-    #palette=palette,
+    palette=palette,
     zorder=10,
     alpha=1
 )
 
 ch = ax.get_children()
 
-ax.set_xscale("log")
-ticks = [0.1, 1, 10, 60, 10 * 60]
-labels = ["", "1s", "10s", "1min", "10min"]
+#ax.set_xscale("log")
+ticks = [10, 10 * 60, 30 * 60, 60 * 60]
+labels = ["10s", "10min", "30min", "1h"]
 ax.set_xticks(ticks, labels=labels, fontsize=12)
-
 plt.yticks(fontsize=12)
 
 ax.set_xlabel("Fit time", fontsize=13)

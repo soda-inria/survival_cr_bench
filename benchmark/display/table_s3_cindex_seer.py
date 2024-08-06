@@ -3,8 +3,6 @@ import json
 from pathlib import Path
 import numpy as np
 import pandas as pd
-import seaborn as sns
-from matplotlib import pyplot as plt
 
 
 model_remaming = {

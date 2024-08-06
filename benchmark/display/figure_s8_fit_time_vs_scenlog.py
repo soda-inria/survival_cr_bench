@@ -14,9 +14,9 @@ model_remaming = {
     "sumonet": "SumoNet",
     "dqs": "DQS",
     "han-nll": "Han et al. (nll)",
-    "han-bll_game": "Han et al. (game)",
+    "han-bll_game": "Han et al. (nll_game)",
     "sksurv_boosting": "Gradient Boosting Survival",
-    "random_survival_forest": "RandomSurvivalForest",
+    "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
     "pchazard": "PCHazard",
@@ -49,24 +49,30 @@ for path_model in path_scores.glob("*"):
         )
 
 df = pd.DataFrame(results)
+df["model_name"] = df["model_name"].map(model_remaming)
 
-# hue_order = [
-#     "MultiIncidence",
-#     "SurvTRACE",
-#     # "DeepHit",
-#     "DSM",
-#     "DeSurv",
-#     "Random Survival Forests",
-#     "Fine & Gray",
-#     "Aalen Johansen",
-# ]
+order = {
+    # "DeepHit": 0,
+    # "PCHazard": 1,
+    "Han et al. (nll)": 2,
+    "Han et al. (bll_game)": 3,
+    "DQS": 4,
+    "SumoNet": 5,
+    "SurvTRACE": 6,
+    "Random Survival Forests": 7,
+    "Gradient Boosting Survival": 8, 
+    "MultiIncidence": 9,
+}
 
-# palette = dict(
-#     zip(
-#         hue_order,
-#         sns.color_palette("colorblind", n_colors=len(hue_order))
-#     )
-# )
+df["order"] = df["model_name"].map(order)
+df = df.sort_values("order").drop("order", axis=1)
+
+palette = dict(
+    zip(
+        list(order),
+        sns.color_palette("colorblind", n_colors=len(order))
+    )
+)
 
 c = "black"
 plt.errorbar(
@@ -93,15 +99,16 @@ ax = sns.scatterplot(
     #hue_order=hue_order,
     style="dataset_name",
     s=200,
-    #palette=palette,
+    palette=palette,
     zorder=10,
     alpha=1
 )
 
 ch = ax.get_children()
 
-ticks = [0, 10, 1 * 60, 2 * 60, 5 * 60]
-labels = ["", "10s", "1min", "2min", "5min"]
+ax.set_xscale("log")
+ticks = [0.1, 1, 10, 1 * 60, 5 * 60]
+labels = ["", "1s", "10s", "1min", "5min"]
 ax.set_xticks(ticks, labels=labels, fontsize=12)
 plt.yticks(fontsize=12)
 

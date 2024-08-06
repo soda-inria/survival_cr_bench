@@ -1,6 +1,6 @@
 from sklearn.utils import Bunch
 from sklearn.model_selection import train_test_split
-from pycox.datasets import support, metabric
+from pycox.datasets import support, metabric, kkbox
 from hazardous.data._seer import (
     load_seer,
     CATEGORICAL_COLUMN_NAMES,
@@ -57,6 +57,31 @@ def get_split_support(dataset_params):
     )
 
 
+def get_split_kkbox(dataset_params):
+    df = kkbox.read_df()
+    target_columns = ["censor_duration", "msno"]
+    df = df.drop(target_columns, axis=1)
+    categorical_columns = ["city", "gender", "registered_via", "payment_method_id"]
+    numerical_columns = [
+        "n_prev_churns",
+        "log_days_between_subs",
+        "log_days_since_reg_init",
+        "log_payment_plan_days",
+        "log_plan_list_price",
+        "log_actual_amount_paid",
+        "is_auto_renew",
+        "is_cancel",
+        "age_at_start",
+        "strange_age",
+        "nan_days_since_reg_init",
+        "no_prev_churns",
+    ]
+
+    return pycox_preprocessing(
+        df, categorical_columns, numerical_columns, dataset_params
+    )
+
+
 def pycox_preprocessing(df, categorical_features, numerical_features, dataset_params):
     X = df.drop(columns=["duration", "event"])
     X[categorical_features] = X[categorical_features].astype("category")
@@ -68,9 +93,9 @@ def pycox_preprocessing(df, categorical_features, numerical_features, dataset_pa
 
 
 def split(X, y, dataset_params, **kwargs):
-    
+
     random_state = dataset_params.get("random_state", 0)
-    
+
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
@@ -103,4 +128,5 @@ LOAD_DATASET_FUNCS = {
     "weibull": get_split_synthetic,
     "support": get_split_support,
     "metabric": get_split_metabric,
+    "kkbox": get_split_kkbox,
 }

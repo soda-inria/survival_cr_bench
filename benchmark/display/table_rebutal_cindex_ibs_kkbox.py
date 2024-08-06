@@ -20,9 +20,8 @@ model_remaming = {
     "pchazard": "PCHazard",
 }
 
-include_datasets = ["support", "metabric"]
-metabric_filename = "table_s4_metabric_cindex_ibs.txt"
-support_filename = "table_s5_suppport_cindex_ibs.txt"
+include_datasets = ["kkbox_100k", "kkbox_1M"]
+filename = "table_rebutal_cindex_ibs_kkbox"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -73,7 +72,7 @@ df["model_name"] = df["model_name"].map(model_remaming)
 
 order = {
     # "DeepHit": 0,
-    # "PCHazard": 1,
+    "PCHazard": 1,
     "Han et al. (nll)": 2,
     "Han et al. (bll_game)": 3,
     "DQS": 4,
@@ -86,16 +85,8 @@ order = {
 df["order"] = df["model_name"].map(order)
 df = df.sort_values("order").drop("order", axis=1)
 
-df_support = (
-    df.query("dataset_name == 'support'")
-    .drop("dataset_name", axis=1)
-    .reset_index(drop=True)
-)
-df_metabric = (
-    df.query("dataset_name == 'metabric'")
-    .drop("dataset_name", axis=1)
-    .reset_index(drop=True)
-)
+df_1m = df.query("dataset_name == 'kkbox_1M'").drop("dataset_name", axis=1)
+df_100k = df.query("dataset_name == 'kkbox_100k'").drop("dataset_name", axis=1)
 
 def bold_and_underline(x):
     style = [""] * len(x)
@@ -110,14 +101,12 @@ def bold_and_underline(x):
 
     return style
 
-df_metabric_style = df_metabric.style.apply(bold_and_underline, axis=0)
-open(metabric_filename, "w").write(df_metabric_style.to_latex())
-df_metabric_style
+df_1m_style = df_1m.style.apply(bold_and_underline, axis=0)
+open(filename, "w").write(df_1m_style.to_latex())
+df_1m_style
 
 # %%
-df_support_style = df_support.style.apply(bold_and_underline, axis=0)
-open(support_filename, "w").write(df_support_style.to_latex())
-df_support_style
-
+df_100k_style = df_100k.style.apply(bold_and_underline, axis=0)
+df_100k_style
 
 # %%
