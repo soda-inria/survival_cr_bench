@@ -8,14 +8,14 @@ from matplotlib import pyplot as plt
 
 
 model_remaming = {
-    "gbmi": "MultiIncidence",
-    "survtrace": "SurvTRACE",
-    "deephit": "DeepHit",
-    "DSM": "DSM",
-    "DeSurv": "DeSurv",
-    "random_survival_forest": "Random Survival Forests",
-    "fine_and_gray": "Fine & Gray",
-    "aalen_johansen": "Aalen Johansen",
+    "gbmi": "MultiIncidence (CPU)",
+    "survtrace": "SurvTRACE (GPU)",
+    "deephit": "DeepHit (GPU)",
+    "DSM": "DSM (GPU)",
+    "DeSurv": "DeSurv (GPU)",
+    "random_survival_forest": "RSF (CPU)",
+    "fine_and_gray": "Fine & Gray (CPU)",
+    "aalen_johansen": "Aalen Johansen (CPU)",
 }
 include_datasets = ["seer"]
 filename = "figure_04_seer_accuracy_in_time.png"
@@ -52,14 +52,14 @@ df = pd.DataFrame(results)
 df["model_name"] = df["model_name"].map(model_remaming)
 
 hue_order = [
-    "MultiIncidence",
-    "SurvTRACE",
-    # "DeepHit",
-    "DSM",
-    "DeSurv",
-    "Random Survival Forests",
-    "Fine & Gray",
-    "Aalen Johansen",
+    "MultiIncidence (CPU)",
+    "SurvTRACE (GPU)",
+    "DeepHit (GPU)",
+    "DSM (GPU)",
+    "DeSurv (GPU)",
+    "RSF (CPU)",
+    "Fine & Gray (CPU)",
+    "Aalen Johansen (CPU)",
 ]
 order = dict(zip(hue_order, range(len(hue_order))))
 df["order"] = df["model_name"].map(order)
@@ -67,10 +67,19 @@ df = df.sort_values("order", ascending=False).drop("order", axis=1)
 
 palette = dict(
     zip(
-        hue_order,
+        list(hue_order),
         sns.color_palette("colorblind", n_colors=len(hue_order))
     )
 )
+blue = palette["MultiIncidence (CPU)"]
+orange = palette["SurvTRACE (GPU)"]
+green = palette["DeepHit (GPU)"]
+red = palette["DSM (GPU)"]
+
+palette["MultiIncidence (CPU)"] = red
+palette["SurvTRACE (GPU)"] = green
+palette["DeepHit (GPU)"] = blue
+palette["DSM (GPU)"] = orange
 
 fig, ax = plt.subplots(figsize=(6, 3), dpi=300)
 
@@ -82,7 +91,7 @@ sns.lineplot(
     ax=ax,
     legend=False,
     hue_order=hue_order,
-    #palette=palette,
+    palette=palette,
 )
 # for model_name in df["model_name"].unique():
 #     df_model = df.query("model_name == @model_name")
@@ -105,7 +114,7 @@ sns.scatterplot(
     style="model_name",
     hue_order=hue_order,
     # markers=["P", (4, 1, 0), "^", (4, 1, 45), "s", "X", ],
-    #palette=palette,
+    palette=palette,
 )
 
 quantiles = np.arange(0.125, 1, 0.125)

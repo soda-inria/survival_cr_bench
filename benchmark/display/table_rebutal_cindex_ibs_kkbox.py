@@ -20,7 +20,7 @@ model_remaming = {
     "pchazard": "PCHazard",
 }
 
-include_datasets = ["kkbox_100k", "kkbox_1M"]
+include_datasets = ["kkbox_100k", "kkbox_1M", "kkbox_2M"]
 filename = "table_rebutal_cindex_ibs_kkbox"
 
 path_scores = Path("../scores/agg/")
@@ -85,8 +85,9 @@ order = {
 df["order"] = df["model_name"].map(order)
 df = df.sort_values("order").drop("order", axis=1)
 
-df_1m = df.query("dataset_name == 'kkbox_1M'").drop("dataset_name", axis=1)
 df_100k = df.query("dataset_name == 'kkbox_100k'").drop("dataset_name", axis=1)
+df_1m = df.query("dataset_name == 'kkbox_1M'").drop("dataset_name", axis=1)
+df_2m = df.query("dataset_name == 'kkbox_2M'").drop("dataset_name", axis=1)
 
 def bold_and_underline(x):
     style = [""] * len(x)
@@ -101,12 +102,15 @@ def bold_and_underline(x):
 
     return style
 
+# %%
+df_100k_style = df_100k.style.apply(bold_and_underline, axis=0)
+df_100k_style
+
+# %%
 df_1m_style = df_1m.style.apply(bold_and_underline, axis=0)
 open(filename, "w").write(df_1m_style.to_latex())
 df_1m_style
 
 # %%
-df_100k_style = df_100k.style.apply(bold_and_underline, axis=0)
-df_100k_style
-
+df_2m
 # %%

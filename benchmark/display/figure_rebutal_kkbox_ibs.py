@@ -11,14 +11,17 @@ model_remaming = {
     "gbmi": "MultiIncidence (CPU)",
     "survtrace": "SurvTRACE (GPU)",
     "deephit": "DeepHit (GPU)",
-    "DSM": "DSM (CPU)",
-    "DeSurv": "DeSurv (CPU)",
+    "sumonet": "SumoNet (GPU)",
+    "dqs": "DQS (GPU)",
+    "han-bs_game": "Han et al. (GPU)",
+    "sksurv_boosting": "GBS (CPU)",
     "random_survival_forest": "RSF (CPU)",
-    "fine_and_gray": "Fine & Gray (CPU)",
-    "aalen_johansen": "Aalen Johansen (CPU)",
+    "pchazard": "PCHazard (GPU)",
 }
-include_datasets = ["seer"]
-filename = "figure_02_seer_fit_time_vs_ibs.png"
+include_datasets = ["kkbox_100k", "kkbox_1M", "kkbox_2M"]
+metric = "ibs"
+
+filename = "figure_rebutal_kkbox_ibs.png"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -32,18 +35,13 @@ for path_model in path_scores.glob("*"):
         if not dataset_name in include_datasets:
             continue
         agg_result = json.load(open(path_dataset))
-        global_mean = np.mean(
-            [row["mean_ibs"] for row in agg_result["event_specific_ibs"]]
-        )
-        global_std = np.sum(
-            [row["std_ibs"] for row in agg_result["event_specific_ibs"]]
-        )
+        
         results.append(
             dict(
                 mean_fit_time=agg_result["mean_fit_time"],
                 std_fit_time=agg_result["std_fit_time"],
-                mean_ibs=global_mean,
-                std_ibs=global_std,
+                mean_ibs=agg_result["event_specific_ibs"][0]["mean_ibs"],
+                std_ibs=agg_result["event_specific_ibs"][0]["std_ibs"],
                 model_name=model_name,
                 dataset_name=dataset_name,
             )
@@ -51,47 +49,42 @@ for path_model in path_scores.glob("*"):
 
 df = pd.DataFrame(results)
 df["model_name"] = df["model_name"].map(model_remaming)
-model_names = df["model_name"].unique()
 
-hue_order = [
-    "MultiIncidence (CPU)",
-    "SurvTRACE (GPU)",
-    "DeepHit (GPU)",
-    "DSM (CPU)",
-    "DeSurv (CPU)", 
-    "RSF (CPU)",
-    "Fine & Gray (CPU)",
-    "Aalen Johansen (CPU)",
-]
+order = {
+    "DeepHit (GPU)": 0,
+    "PCHazard (GPU)": 1,
+#    "Han et al. (nll)": 2,
+    "Han et al. (GPU)": 3,
+    "DQS (GPU)": 4,
+#    "SumoNet": 5,
+    "SurvTRACE (GPU)": 6,
+    "RSF (CPU)": 7,
+    "GBS (CPU)": 8, 
+    "MultiIncidence (CPU)": 9,
+}
+
+df["order"] = df["model_name"].map(order)
+df = df.sort_values(["order", "dataset_name"]).drop("order", axis=1)
 
 palette = dict(
     zip(
-        hue_order,
-        sns.color_palette('colorblind', n_colors=len(hue_order))
+        list(order),
+        sns.color_palette("colorblind", n_colors=len(order))
     )
 )
-blue = palette["MultiIncidence (CPU)"]
-yellow = palette["SurvTRACE (GPU)"]
-green = palette["DeepHit (GPU)"]
-red = palette["DSM (CPU)"]
-purple = palette["DeSurv (CPU)"]
-pink = palette["Fine & Gray (CPU)"]
-grey = palette["Aalen Johansen (CPU)"]
-brown = palette["RSF (CPU)"]
+red = palette["DQS (GPU)"]
+green = palette["Han et al. (GPU)"]
+grey = palette["MultiIncidence (CPU)"]
+purple = palette["SurvTRACE (GPU)"]
 
 palette["MultiIncidence (CPU)"] = red
-palette["DeepHit (GPU)"] = blue
 palette["SurvTRACE (GPU)"] = green
-palette["DSM (CPU)"] = yellow
-palette["DeSurv (CPU)"] = purple
-palette["RSF (CPU)"] = brown
-palette["Fine & Gray (CPU)"] = pink
-palette["Aalen Johansen (CPU)"] = grey
+palette["Han et al. (GPU)"] = purple
+palette["DQS (GPU)"] = grey
 
-fig, ax = plt.subplots(figsize=(3.5, 4), dpi=300)
-
+fig, ax = plt.subplots(figsize=(6.5, 3), dpi=300)
 c = "black"
-ax.errorbar(
+plt.errorbar(
     x=df["mean_fit_time"],
     y=df["mean_ibs"],
     yerr=df['std_ibs'],
@@ -99,7 +92,7 @@ ax.errorbar(
     c=c,
     capsize = 2,
 )
-ax.errorbar(
+plt.errorbar(
     x=df["mean_fit_time"],
     xerr=df['std_fit_time'],
     y=df["mean_ibs"],
@@ -107,32 +100,35 @@ ax.errorbar(
     c=c,
     capsize = 2,
 )
-sns.scatterplot(
+ax = sns.scatterplot(
     df,
     x="mean_fit_time",
     y="mean_ibs",
     hue="model_name",
-    hue_order=hue_order,
-    style="model_name",
+    #hue_order=hue_order,
+    style="dataset_name",
     s=200,
     palette=palette,
     zorder=10,
-    alpha=1,
-    ax=ax,
+    alpha=1
 )
 
-ticks = [0, 5 * 60, 20 * 60, 40 * 60, 60 * 60]
-labels = ["", "5min", "20min", "40min", "1h"]
-ax.set_xticks(ticks, labels=labels, fontsize=12)
+ch = ax.get_children()
+
+ax.set_xscale("log")
+ticks = [10, 2 * 60, 10 * 60, 30 * 60, 2 * 60 * 60, 4 * 60 * 60, 8 * 60 * 60]
+labels = ["10s", "2min", "10min", "30min", "2h", "4h", "8h"]
+ax.set_xticks(ticks)
+ax.set_xticklabels(labels, rotation=45, fontsize=12)
 plt.yticks(fontsize=12)
 
 ax.set_xlabel("Fit time", fontsize=13)
 ax.set_ylabel("Mean IBS", fontsize=13)
 
-ax.grid(axis="x")
+ax.grid()
 
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
-#plt.tight_layout()
+plt.tight_layout()
 plt.savefig(filename)
 
 # %%

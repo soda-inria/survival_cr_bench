@@ -23,11 +23,11 @@ from _dataset import LOAD_DATASET_FUNCS
 #     "estimator__n_iter_before_feedback": randint(5, 50),
 # }
 gbmi_param_grid = {
-    "estimator__learning_rate": [0.01],
-    "estimator__max_depth": [9],
+    "estimator__learning_rate": [0.05],
+    "estimator__max_depth": [8],
     "estimator__n_iter": [100],
-    "estimator__n_times": [1],
-    "estimator__n_iter_before_feedback": [20],
+    "estimator__n_times": [3],
+    "estimator__n_iter_before_feedback": [30],
 }
 
 # survtrace_grid = {
@@ -83,7 +83,7 @@ DATASET_GRID = {
     },
     "kkbox": {
         "random_state": range(5),
-        "n_samples": [100_000],
+        "n_samples": [1_000_000],
     }
 }
 
@@ -130,6 +130,17 @@ def search_hp(dataset_name, dataset_params, model_name):
     }
 
     if not SEARCH_HP or not param_grid:
+        try:
+            sk_param_grid = ParameterGrid(param_grid)
+        except TypeError:
+            raise TypeError(
+                "Define a grid instead of a distribution to skip hp search"
+            )
+        if len(sk_param_grid) > 1:
+            raise TypeError(
+                "Define a single value for each key of the grid to skip hp search"
+            )
+        best_model_params.update(sk_param_grid[0])
         print("No search for HP")
     else:
         hp_search = RandomizedSearchCV(
@@ -156,7 +167,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("kkbox", "sksurv_boosting")
+    search_all_dataset_params("kkbox", "gbmi")
 
 
 # %%

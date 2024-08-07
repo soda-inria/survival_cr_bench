@@ -377,7 +377,7 @@ def _aggregate_scores(scores, already_aggregated=False):
             if already_aggregated:
                 key = "mean_brier_scores"
             else:
-                key = "brier_scores"
+                key = "brier_score"
             brier_scores.append(
                 score[f"event_specific_brier_scores"][event_idx][key]
             )
@@ -499,8 +499,8 @@ def standalone_aggregate(model_name, dataset_name, already_aggregated=False):
 # %%
 
 if __name__ == "__main__":
-    #evaluate_all_models(include_models=["sksurv_boosting"], include_datasets=["kkbox"])
-    standalone_aggregate("deephit", "kkbox_100k", already_aggregated=True)
+    #evaluate_all_models(include_models=["gbmi"], include_datasets=["kkbox"])
+    standalone_aggregate("pchazard", "kkbox_1M", already_aggregated=True)
 
 
 # %%

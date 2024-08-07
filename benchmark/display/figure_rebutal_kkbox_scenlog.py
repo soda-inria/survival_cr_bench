@@ -13,16 +13,14 @@ model_remaming = {
     "deephit": "DeepHit (GPU)",
     "sumonet": "SumoNet (GPU)",
     "dqs": "DQS (GPU)",
-    "han-nll": "Han et al. (nll) (GPU)",
-    "han-bll_game": "Han et al. (nll_game) (GPU)",
-    "sksurv_boosting": "Gradient Boosting Survival (CPU)",
+    "han-bs_game": "Han et al. (GPU)",
+    "sksurv_boosting": "GBS (CPU)",
     "random_survival_forest": "RSF (CPU)",
     "pchazard": "PCHazard (GPU)",
 }
-include_datasets = ["kkbox_100k", "kkbox_1M"]
-metric = "ibs"
+include_datasets = ["kkbox_100k", "kkbox_1M", "kkbox_2M"]
 
-filename = "figure_rebutal_kkbox.png"
+filename = "figure_rebutal_kkbox_scenlog.png"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -41,8 +39,8 @@ for path_model in path_scores.glob("*"):
             dict(
                 mean_fit_time=agg_result["mean_fit_time"],
                 std_fit_time=agg_result["std_fit_time"],
-                mean_ibs=agg_result["event_specific_ibs"][0]["mean_ibs"],
-                std_ibs=agg_result["event_specific_ibs"][0]["std_ibs"],
+                mean_cenlog=agg_result["mean_censlog"],
+                std_cenlog=agg_result["std_censlog"],
                 model_name=model_name,
                 dataset_name=dataset_name,
             )
@@ -55,17 +53,17 @@ order = {
     "DeepHit (GPU)": 0,
     "PCHazard (GPU)": 1,
 #    "Han et al. (nll)": 2,
-#    "Han et al. (bll_game)": 3,
+    "Han et al. (GPU)": 3,
     "DQS (GPU)": 4,
 #    "SumoNet": 5,
     "SurvTRACE (GPU)": 6,
     "RSF (CPU)": 7,
-#    "Gradient Boosting Survival": 8, 
+    "GBS (CPU)": 8, 
     "MultiIncidence (CPU)": 9,
 }
 
 df["order"] = df["model_name"].map(order)
-df = df.sort_values("order").drop("order", axis=1)
+df = df.sort_values(["order", "dataset_name"]).drop("order", axis=1)
 
 palette = dict(
     zip(
@@ -73,12 +71,22 @@ palette = dict(
         sns.color_palette("colorblind", n_colors=len(order))
     )
 )
+red = palette["DQS (GPU)"]
+green = palette["Han et al. (GPU)"]
+grey = palette["MultiIncidence (CPU)"]
+purple = palette["SurvTRACE (GPU)"]
 
+palette["MultiIncidence (CPU)"] = red
+palette["SurvTRACE (GPU)"] = green
+palette["Han et al. (GPU)"] = purple
+palette["DQS (GPU)"] = grey
+
+fig, ax = plt.subplots(figsize=(6.5, 3), dpi=300)
 c = "black"
 plt.errorbar(
     x=df["mean_fit_time"],
-    y=df["mean_ibs"],
-    yerr=df['std_ibs'],
+    y=df["mean_cenlog"],
+    yerr=df['std_cenlog'],
     fmt='none',
     c=c,
     capsize = 2,
@@ -86,7 +94,7 @@ plt.errorbar(
 plt.errorbar(
     x=df["mean_fit_time"],
     xerr=df['std_fit_time'],
-    y=df["mean_ibs"],
+    y=df["mean_cenlog"],
     fmt='none',
     c=c,
     capsize = 2,
@@ -94,7 +102,7 @@ plt.errorbar(
 ax = sns.scatterplot(
     df,
     x="mean_fit_time",
-    y="mean_ibs",
+    y="mean_cenlog",
     hue="model_name",
     #hue_order=hue_order,
     style="dataset_name",
@@ -106,16 +114,17 @@ ax = sns.scatterplot(
 
 ch = ax.get_children()
 
-#ax.set_xscale("log")
-ticks = [10, 10 * 60, 30 * 60, 60 * 60]
-labels = ["10s", "10min", "30min", "1h"]
-ax.set_xticks(ticks, labels=labels, fontsize=12)
+ax.set_xscale("log")
+ticks = [10, 2 * 60, 10 * 60, 30 * 60, 2 * 60 * 60, 4 * 60 * 60, 8 * 60 * 60]
+labels = ["10s", "2min", "10min", "30min", "2h", "4h", "8h"]
+ax.set_xticks(ticks)
+ax.set_xticklabels(labels, rotation=45, fontsize=12)
 plt.yticks(fontsize=12)
 
 ax.set_xlabel("Fit time", fontsize=13)
-ax.set_ylabel("Mean IBS", fontsize=13)
+ax.set_ylabel("Mean S-cen-log", fontsize=13)
 
-ax.grid(axis="x")
+ax.grid()
 
 sns.move_legend(ax, "upper left", bbox_to_anchor=(1, 1))
 plt.tight_layout()
