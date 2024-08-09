@@ -1,11 +1,8 @@
-\begin{tabular}{lllllll}
- & model_name & C-index 0.25 & C-index 0.5 & C-index 0.75 & S Cen-log-simple & IBS \\
-0 & Han et al. (nll) & 0.507 ± 0.022 & 0.513 ± 0.012 & 0.532 ± 0.013 & 3.376 ± 0.201 & 0.252 ± 0.005 \\
-1 & Han et al. (bll_game) & 0.583 ± 0.02 & 0.569 ± 0.012 & 0.565 ± 0.01 & 3.343 ± 0.207 & 0.254 ± 0.004 \\
-2 & DQS & 0.574 ± 0.008 & 0.568 ± 0.006 & 0.564 ± 0.006 & 2.586 ± 0.023 & 0.202 ± 0.005 \\
-3 & SumoNet & 0.59 ± 0.008 & 0.591 ± 0.007 & 0.594 ± 0.007 & 1.822 ± 0.023 & 0.195 ± 0.005 \\
-4 & SurvTRACE & 0.608 ± 0.004 & 0.609 ± 0.003 & 0.606 ± 0.002 & 1.61 ± 0.021 & 0.188 ± 0.005 \\
-5 & Random Survival Forests & \text-decorationunderline 0.617 ± 0.006 & \text-decorationunderline 0.614 ± 0.005 & \text-decorationunderline 0.61 ± 0.005 & \text-decorationunderline 1.539 ± 0.019 & \font-weightbold 0.181 ± 0.004 \\
-6 & Gradient Boosting Survival & 0.614 ± 0.011 & \font-weightbold 0.614 ± 0.01 & \font-weightbold 0.614 ± 0.01 & 1.575 ± 0.016 & 0.187 ± 0.004 \\
-7 &  MultiIncidence & \font-weightbold 0.618 ± 0.005 & 0.614 ± 0.004 & 0.607 ± 0.005 & \font-weightbold 1.528 ± 0.018 & \text-decorationunderline 0.183 ± 0.004 \\
+\begin{tabular}{lllll}
+ & model_name & MSE & MAE & AUC \\
+0 & DQS & 1495627.8 ± 33039.8 & 876.2 ± 10.3 & 0.5994 ± 0.0062 \\
+1 & SurvTRACE & 1328333.0 ± 66108.5 & 857.1 ± 18.6 & 0.6514 ± 0.0041 \\
+2 & Random Survival Forests & 1351018.6 ± 54154.6 & \text-decorationunderline 843.7 ± 14.9 & \font-weightbold 0.675 ± 0.0094 \\
+3 & Gradient Boosting Survival & \text-decorationunderline 1292736.1 ± 26527.0 & 847.8 ± 10.0 & 0.6617 ± 0.0128 \\
+4 &  MultiIncidence & \font-weightbold 1213904.2 ± 29971.1 & \font-weightbold 828.2 ± 11.4 & \text-decorationunderline 0.6712 ± 0.0056 \\
 \end{tabular}

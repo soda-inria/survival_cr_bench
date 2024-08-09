@@ -331,18 +331,18 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=Tru
         )
         mse = evaluator.mse(method="Pseudo_obs")
         mae = evaluator.mae(method="Pseudo_obs")
-        d_calibration, _ = evaluator.d_calibration(num_bins=10) 
+        auc = evaluator.auc() 
         scores.update(
             dict(
                 mse=mse,
                 mae=mae,
-                d_calibration=d_calibration,
+                auc=auc,
             )
         )
         if verbose:
             print(f"{mse=}")
             print(f"{mae=}")
-            print(f"{d_calibration=}")
+            print(f"{auc=}")
 
     if verbose:
         print(f"{event_specific_ibs=}")
@@ -527,7 +527,7 @@ def _agg_survival(scores, already_aggregated=False):
         std_cenlog=np.std(censlog).round(4),
     )
     
-    for metric in ["d_calibration", "mse", "mae"]:        
+    for metric in ["auc", "mse", "mae"]:        
         if already_aggregated:
             metric_to_aggregate = f"mean_{metric}"
         else:
@@ -588,20 +588,20 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
             )
             mse = evaluator.mse(method="Pseudo_obs")
             mae = evaluator.mae(method="Pseudo_obs")
-            d_calibration, _ = evaluator.d_calibration(num_bins=10)
+            auc = evaluator.auc()
 
         score.update(
             dict(
                 mse=mse,
                 mae=mae,
-                d_calibration=d_calibration,
+                auc=auc,
             )
         )
         print(
             dict(
                 mse=mse,
                 mae=mae,
-                d_calibration=d_calibration,
+                auc=auc,
             )
         )
 
@@ -612,8 +612,8 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    evaluate_all_models(include_models=["deephit"], include_datasets=["metabric"])
-    # standalone_aggregate("han-bll_game", "metabric", already_aggregated=True)
-
+    # evaluate_all_models(include_models=["deephit"], include_datasets=["metabric"])
+    # compute_additional_survival_metrics_from_raw("dqs", "support")
+    standalone_aggregate("dqs", "metabric", already_aggregated=False)
 
 # %%
