@@ -167,7 +167,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("kkbox", "gbmi")
+    search_all_dataset_params("metabric", "deephit")
 
 
 # %%

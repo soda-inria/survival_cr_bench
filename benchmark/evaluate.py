@@ -8,6 +8,9 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from sksurv.metrics import concordance_index_ipcw
+# Used for mse, mae and d-calibration
+from SurvivalEVAL import SurvivalEvaluator
+
 from hazardous.utils import make_time_grid, make_recarray
 from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
@@ -26,7 +29,7 @@ from hyper_parameter_search import PATH_HP_SEARCH
 DEBUG_N_SUBSAMPLE = None
 PATH_SCORES = Path("scores/")
 N_STEPS_TIME_GRID = 20
-N_TEST_C_INDEX = 10_000
+N_TEST_C_INDEX = None
 
 
 def evaluate_all_models(include_models=None, include_datasets=None, verbose=True):
@@ -37,19 +40,21 @@ def evaluate_all_models(include_models=None, include_datasets=None, verbose=True
 
     if isinstance(include_models, str):
         include_models = [include_models]
-    
+
     if isinstance(include_datasets, str):
         include_datasets = [include_datasets]
 
     # We iterate over each model, dataset and random_state in best_hyper_parameters/
-    for (dataset_name, dataset_params, model_name, model_params) in all_params:
+    for dataset_name, dataset_params, model_name, model_params in all_params:
 
         if (
-            include_models is not None and not model_name in include_models
-            or include_datasets is not None and not dataset_name in include_datasets
+            include_models is not None
+            and not model_name in include_models
+            or include_datasets is not None
+            and not dataset_name in include_datasets
         ):
             continue
-        
+
         bunch = LOAD_DATASET_FUNCS[dataset_name](dataset_params)
         X_train, y_train = bunch.X_train, bunch.y_train
 
@@ -61,30 +66,32 @@ def evaluate_all_models(include_models=None, include_datasets=None, verbose=True
             )
             print(f"dataset_params: {dataset_params}")
             print(f"model_params: {model_params}")
-        
+
         tic = time()
-        model = model.fit(X_train, y_train)
+        model.fit(X_train, y_train)
         toc = time()
         fit_time = round(toc - tic, 2)
 
         scores = evaluate(
-            model, bunch, dataset_name, dataset_params, model_name, verbose,
+            model,
+            bunch,
+            dataset_name,
+            dataset_params,
+            model_name,
+            verbose,
         )
         scores["fit_time"] = fit_time
 
         if verbose:
             print(f"Evaluation done")
-        
+
         all_scores[model_name][dataset_name].append(scores)
         path_dir = PATH_SCORES / "raw" / model_name
         path_dir.mkdir(parents=True, exist_ok=True)
         path_file = path_dir / f"{dataset_name}.json"
-        json.dump(
-            all_scores[model_name][dataset_name],
-            open(path_file, "w")
-        )
+        json.dump(all_scores[model_name][dataset_name], open(path_file, "w"))
         print(f"Wrote {path_file}")
-        
+
     for model_name in all_scores.keys():
         for dataset_name in all_scores[model_name].keys():
             agg_scores = aggregate_scores(all_scores[model_name][dataset_name])
@@ -103,12 +110,12 @@ def get_params():
 
     for model_path in PATH_HP_SEARCH.glob("*"):
         model_name = model_path.name
-        
+
         for dataset_path in model_path.glob("*"):
-            dataset_name = dataset_path.name    
-            
+            dataset_name = dataset_path.name
+
             for run_path in dataset_path.glob("*"):
-                
+
                 best_model_params = json.load(open(run_path / "best_params.json"))
                 dataset_params = json.load(open(run_path / "dataset_params.json"))
                 best_model_params.pop("model_name", None)
@@ -120,11 +127,8 @@ def get_params():
     return all_params
 
 
-def evaluate(
-    model, bunch, dataset_name, dataset_params, model_name, verbose=True
-):
-    """Evaluate a model against its test set.
-    """
+def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=True):
+    """Evaluate a model against its test set."""
     X_train, y_train = bunch.X_train, bunch.y_train
     X_test, y_test = bunch.X_test, bunch.y_test
 
@@ -148,7 +152,7 @@ def evaluate(
             y_test,
             train_size=DEBUG_N_SUBSAMPLE,
             stratify=y_test["event"],
-            random_state=0 # Fix seed for evaluation split
+            random_state=0,  # Fix seed for evaluation split
         )
 
     time_grid = make_time_grid(y_test["duration"], n_steps=N_STEPS_TIME_GRID)
@@ -172,7 +176,7 @@ def evaluate(
     y_train_binary = y_train.copy()
     y_test_binary = y_test.copy()
 
-    for event_id in range(1, n_events+1):
+    for event_id in range(1, n_events + 1):
 
         # Brier score and IBS
         if dataset_name == "weibull":
@@ -193,7 +197,7 @@ def evaluate(
                 time_grid,
                 shape_censoring=bunch.shape_censoring.loc[y_test.index],
                 scale_censoring=bunch.scale_censoring.loc[y_test.index],
-                event_of_interest=event_id,  
+                event_of_interest=event_id,
             )
         else:
             ibs = integrated_brier_score_incidence(
@@ -209,21 +213,25 @@ def evaluate(
                 y_pred[event_id],
                 time_grid,
                 event_of_interest=event_id,
-            )   
-            
-        event_specific_ibs.append({
-            "event": event_id,
-            "ibs": round(ibs, 4),
-        })
-        event_specific_brier_scores.append({
-            "event": event_id,
-            "time": list(time_grid.round(2)),
-            "brier_score": list(brier_scores.round(4)),
-        })
+            )
+
+        event_specific_ibs.append(
+            {
+                "event": event_id,
+                "ibs": round(ibs, 4),
+            }
+        )
+        event_specific_brier_scores.append(
+            {
+                "event": event_id,
+                "time": list(time_grid.round(2)),
+                "brier_score": list(brier_scores.round(4)),
+            }
+        )
 
         # C-index
-        y_train_binary["event"] = (y_train["event"] == event_id)
-        y_test_binary["event"] = (y_test["event"] == event_id)
+        y_train_binary["event"] = y_train["event"] == event_id
+        y_test_binary["event"] = y_test["event"] == event_id
 
         y_pred_c_index = y_pred.copy()
 
@@ -261,18 +269,22 @@ def evaluate(
                     tau=tau,
                 )
             c_indices.append(round(ct_index, 4))
-        
-        event_specific_c_index.append({
-            "event": event_id,
-            "time_quantile": truncation_quantiles,
-            "c_index": c_indices,
-        })
 
-    scores.update({
-        "event_specific_ibs": event_specific_ibs,
-        "event_specific_brier_scores": event_specific_brier_scores,
-        "event_specific_c_index": event_specific_c_index,
-    })
+        event_specific_c_index.append(
+            {
+                "event": event_id,
+                "time_quantile": truncation_quantiles,
+                "c_index": c_indices,
+            }
+        )
+
+    scores.update(
+        {
+            "event_specific_ibs": event_specific_ibs,
+            "event_specific_brier_scores": event_specific_brier_scores,
+            "event_specific_c_index": event_specific_c_index,
+        }
+    )
 
     if is_competing_risk:
         # Accuracy in time
@@ -282,8 +294,8 @@ def evaluate(
             print("Computing accuracy in time")
             print(f"{taus=}")
         accuracy = []
-        
-         # TODO: put it into a function in hazardous._metrics
+
+        # TODO: put it into a function in hazardous._metrics
         for tau in taus:
             tau_idx = np.searchsorted(time_grid, tau)
             y_pred_at_t = y_pred[:, :, tau_idx]
@@ -291,12 +303,7 @@ def evaluate(
             y_pred_class = y_pred_at_t[:, ~mask].argmax(axis=0)
             y_test_class = y_test["event"] * (y_test["duration"] < tau)
             y_test_class = y_test_class.loc[~mask]
-            accuracy.append(
-                round(
-                    (y_test_class.values == y_pred_class).mean(),
-                    4
-                )
-            )
+            accuracy.append(round((y_test_class.values == y_pred_class).mean(), 4))
         scores["accuracy_in_time"] = {
             "time_quantile": truncation_quantiles,
             "accuracy": accuracy,
@@ -309,9 +316,33 @@ def evaluate(
         censlog = CensoredNegativeLogLikelihoodSimple().loss(
             y_pred, y_test["duration"], y_test["event"], time_grid
         )
-        scores["censlog"] = round(censlog, 4)        
+        scores["censlog"] = round(censlog, 4)
         if verbose:
             print(f"{censlog=}")
+
+        # mse, mae and d-calibration
+        evaluator = SurvivalEvaluator(
+            predicted_survival_curves=y_pred[0, :, :],
+            time_coordinates=time_grid,
+            test_event_indicators=y_test["event"].to_numpy(),
+            test_event_times=y_test["duration"].to_numpy(),
+            train_event_indicators=y_train["event"].to_numpy(),
+            train_event_times=y_train["duration"].to_numpy(),
+        )
+        mse = evaluator.mse(method="Pseudo_obs")
+        mae = evaluator.mae(method="Pseudo_obs")
+        d_calibration, _ = evaluator.d_calibration(num_bins=10) 
+        scores.update(
+            dict(
+                mse=mse,
+                mae=mae,
+                d_calibration=d_calibration,
+            )
+        )
+        if verbose:
+            print(f"{mse=}")
+            print(f"{mae=}")
+            print(f"{d_calibration=}")
 
     if verbose:
         print(f"{event_specific_ibs=}")
@@ -321,36 +352,42 @@ def evaluate(
 
 
 def aggregate_scores(seed_scores, already_aggregated=False):
-    """Aggregate model seeds
-    """
+    """Aggregate model seeds"""
     agg_score = _aggregate_scores(seed_scores, already_aggregated)
 
     if seed_scores[0]["is_competing_risk"]:
-        agg_score.update(
-            _agg_competing_risk(seed_scores, already_aggregated)
-        )
-        agg_score["average_ibs"] = np.mean([
-            event_score["mean_ibs"]
-            for event_score in agg_score["event_specific_ibs"]
-        ]).round(4)
+        agg_score.update(_agg_competing_risk(seed_scores, already_aggregated))
+        agg_score["average_ibs"] = np.mean(
+            [event_score["mean_ibs"] for event_score in agg_score["event_specific_ibs"]]
+        ).round(4)
     else:
-        agg_score.update(
-            _agg_survival(seed_scores, already_aggregated)
-        )
+        agg_score.update(_agg_survival(seed_scores, already_aggregated))
 
     if already_aggregated:
         for col in ["mean_fit_time", "mean_predict_time"]:
             agg_col = col.split("mean_")[1]
-            agg_score.update({
-                f"mean_{agg_col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
-                f"std_{agg_col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
-            })
+            agg_score.update(
+                {
+                    f"mean_{agg_col}": np.mean(
+                        [score[col] or 0 for score in seed_scores]
+                    ).round(2),
+                    f"std_{agg_col}": np.std(
+                        [score[col] or 0 for score in seed_scores]
+                    ).round(2),
+                }
+            )
     else:
         for col in ["fit_time", "predict_time"]:
-            agg_score.update({
-                f"mean_{col}": np.mean([score[col] or 0 for score in seed_scores]).round(2),
-                f"std_{col}": np.std([score[col] or 0 for score in seed_scores]).round(2),
-            })
+            agg_score.update(
+                {
+                    f"mean_{col}": np.mean(
+                        [score[col] or 0 for score in seed_scores]
+                    ).round(2),
+                    f"std_{col}": np.std(
+                        [score[col] or 0 for score in seed_scores]
+                    ).round(2),
+                }
+            )
 
     fields = [
         "is_competing_risk",
@@ -367,7 +404,7 @@ def aggregate_scores(seed_scores, already_aggregated=False):
 
 def _aggregate_scores(scores, already_aggregated=False):
     agg_score = dict()
-    
+
     # Brier score
     n_event = scores[0]["n_events"]
     event_specific_brier_scores = []
@@ -378,16 +415,16 @@ def _aggregate_scores(scores, already_aggregated=False):
                 key = "mean_brier_scores"
             else:
                 key = "brier_score"
-            brier_scores.append(
-                score[f"event_specific_brier_scores"][event_idx][key]
-            )
+            brier_scores.append(score[f"event_specific_brier_scores"][event_idx][key])
         brier_scores = np.vstack(brier_scores)
-        event_specific_brier_scores.append({
-            "event": event_idx + 1,
-            "time": score["event_specific_brier_scores"][0]["time"],
-            f"mean_brier_scores": list(brier_scores.mean(axis=0).round(4)),
-            f"std_brier_scores": list(brier_scores.std(axis=0).round(4)),
-        })
+        event_specific_brier_scores.append(
+            {
+                "event": event_idx + 1,
+                "time": score["event_specific_brier_scores"][0]["time"],
+                f"mean_brier_scores": list(brier_scores.mean(axis=0).round(4)),
+                f"std_brier_scores": list(brier_scores.std(axis=0).round(4)),
+            }
+        )
     agg_score[f"event_specific_brier_scores"] = event_specific_brier_scores
 
     # IBS
@@ -398,11 +435,13 @@ def _aggregate_scores(scores, already_aggregated=False):
         else:
             key = "ibs"
         ibs = [score["event_specific_ibs"][event_idx][key] for score in scores]
-        event_specific_ibs.append({
-            "event": event_idx + 1,
-            "mean_ibs": np.mean(ibs).round(4),
-            "std_ibs":  np.std(ibs).round(4),
-        })
+        event_specific_ibs.append(
+            {
+                "event": event_idx + 1,
+                "mean_ibs": np.mean(ibs).round(4),
+                "std_ibs": np.std(ibs).round(4),
+            }
+        )
     agg_score["event_specific_ibs"] = event_specific_ibs
 
     # C-index
@@ -413,17 +452,18 @@ def _aggregate_scores(scores, already_aggregated=False):
             mean_c_index, std_c_index = [], []
             for event_idx in range(n_event):
                 c_indices = [
-                    score["c_index"][idx]["mean_c_index"][event_idx]
-                    for score in scores
+                    score["c_index"][idx]["mean_c_index"][event_idx] for score in scores
                 ]
                 mean_c_index.append(np.mean(c_indices).round(4))
                 std_c_index.append(np.std(c_indices).round(4))
-            q_specific_c_index.append({
-                "time_quantile": round(q, 4),
-                "event": list(range(1, n_event+1)),
-                "mean_c_index": mean_c_index,
-                "std_c_index": std_c_index,
-            })
+            q_specific_c_index.append(
+                {
+                    "time_quantile": round(q, 4),
+                    "event": list(range(1, n_event + 1)),
+                    "mean_c_index": mean_c_index,
+                    "std_c_index": std_c_index,
+                }
+            )
 
     else:
         time_quantiles = scores[0]["event_specific_c_index"][0]["time_quantile"]
@@ -437,12 +477,14 @@ def _aggregate_scores(scores, already_aggregated=False):
                 ]
                 mean_c_index.append(np.mean(c_indices).round(4))
                 std_c_index.append(np.std(c_indices).round(4))
-            q_specific_c_index.append({
-                "time_quantile": round(q, 4),
-                "event": list(range(1, n_event+1)),
-                "mean_c_index": mean_c_index,
-                "std_c_index": std_c_index,
-            })
+            q_specific_c_index.append(
+                {
+                    "time_quantile": round(q, 4),
+                    "event": list(range(1, n_event + 1)),
+                    "mean_c_index": mean_c_index,
+                    "std_c_index": std_c_index,
+                }
+            )
 
     agg_score["c_index"] = q_specific_c_index
 
@@ -457,13 +499,13 @@ def _agg_competing_risk(scores, already_aggregated=False):
         quantile_name = "time_quantiles"
         metric_to_aggregate = "mean_accuracy"
     else:
-        quantile_name = "time_quantile"  # TODO: fix 
+        quantile_name = "time_quantile"  # TODO: fix
         metric_to_aggregate = "accuracy"
 
     time_quantiles = scores[0]["accuracy_in_time"][quantile_name]
-    accuracies = np.vstack([
-        score["accuracy_in_time"][metric_to_aggregate] for score in scores
-    ])
+    accuracies = np.vstack(
+        [score["accuracy_in_time"][metric_to_aggregate] for score in scores]
+    )
     agg_score["accuracy_in_time"] = {
         "time_quantiles": time_quantiles,
         "mean_accuracy": list(accuracies.mean(axis=0).round(4)),
@@ -479,10 +521,26 @@ def _agg_survival(scores, already_aggregated=False):
     else:
         metric_to_aggregate = "censlog"
     censlog = [score[metric_to_aggregate] for score in scores]
-    return {
-        "mean_censlog": np.mean(censlog).round(4),
-        "std_censlog": np.std(censlog).round(4),
-    }
+
+    agg_survival_score = dict(
+        mean_censlog=np.mean(censlog).round(4),
+        std_cenlog=np.std(censlog).round(4),
+    )
+    
+    for metric in ["d_calibration", "mse", "mae"]:        
+        if already_aggregated:
+            metric_to_aggregate = f"mean_{metric}"
+        else:
+            metric_to_aggregate = metric
+
+        metrics = [score.get(metric_to_aggregate, np.nan) for score in scores]
+
+        agg_survival_score.update({
+            f"mean_{metric}": np.nanmean(metrics),
+            f"std_{metric}": np.nanstd(metrics),
+        })
+
+    return agg_survival_score
 
 
 def standalone_aggregate(model_name, dataset_name, already_aggregated=False):
@@ -492,15 +550,70 @@ def standalone_aggregate(model_name, dataset_name, already_aggregated=False):
     model_scores = json.load(open(path_dir_raw / f"{dataset_name}.json"))
     agg_scores = aggregate_scores(model_scores, already_aggregated)
     path_dir_agg = PATH_SCORES / "agg" / model_name
-    path_dir_agg.mkdir(parents=True, exist_ok=True) 
-    json.dump(agg_scores, open(path_dir_agg / f"{dataset_name}.json", "w"))
+    path_dir_agg.mkdir(parents=True, exist_ok=True)
+    path_file_agg = path_dir_agg / f"{dataset_name}.json"
+    json.dump(agg_scores, open(path_file_agg, "w"))
+    print(f"Wrote {path_file_agg}")
+
+
+def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
+
+    options = ["metabric", "support"]
+    if not dataset_name in options:
+        raise ValueError(f"'dataset_name' must be one of {options}, got {dataset_name}")
+
+    path_dir_raw = PATH_SCORES / "raw" / model_name
+    path_file = path_dir_raw / f"{dataset_name}.json"
+    model_scores = json.load(open(path_file))
+    for score in model_scores:
+        mse = None
+        mae = None
+        d_calibration = None
+        if "y_pred" in score:
+            y_pred_survival = np.asarray(score["y_pred"])[0, :, :]
+            time_grid = np.asarray(score["time_grid"])
+
+            load_data_func = LOAD_DATASET_FUNCS[dataset_name]
+            bunch = load_data_func(dataset_params=score)
+            y_train = bunch.y_train
+            y_test = bunch.y_test
+
+            evaluator = SurvivalEvaluator(
+                predicted_survival_curves=y_pred_survival,
+                time_coordinates=time_grid,
+                test_event_indicators=y_test["event"].to_numpy(),
+                test_event_times=y_test["duration"].to_numpy(),
+                train_event_indicators=y_train["event"].to_numpy(),
+                train_event_times=y_train["duration"].to_numpy(),
+            )
+            mse = evaluator.mse(method="Pseudo_obs")
+            mae = evaluator.mae(method="Pseudo_obs")
+            d_calibration, _ = evaluator.d_calibration(num_bins=10)
+
+        score.update(
+            dict(
+                mse=mse,
+                mae=mae,
+                d_calibration=d_calibration,
+            )
+        )
+        print(
+            dict(
+                mse=mse,
+                mae=mae,
+                d_calibration=d_calibration,
+            )
+        )
+
+    json.dump(model_scores, open(path_file, "w"))
+    print(f"Wrote {path_file}")
 
 
 # %%
 
 if __name__ == "__main__":
-    #evaluate_all_models(include_models=["gbmi"], include_datasets=["kkbox"])
-    standalone_aggregate("pchazard", "kkbox_1M", already_aggregated=True)
+    evaluate_all_models(include_models=["deephit"], include_datasets=["metabric"])
+    # standalone_aggregate("han-bll_game", "metabric", already_aggregated=True)
 
 
 # %%
