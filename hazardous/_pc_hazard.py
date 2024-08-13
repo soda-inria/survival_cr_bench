@@ -80,6 +80,7 @@ class PCHazardEstimator(tt.Model):
         num_durations=10,
         batch_norm=True,
         dropout=None,
+        lr=0.005,
     ):
         self.num_durations = num_durations
         self.num_nodes = num_nodes
@@ -89,6 +90,7 @@ class PCHazardEstimator(tt.Model):
         self.epochs = epochs
         self.callbacks = callbacks
         self.verbose = verbose
+        self.lr = lr
 
     def fit(self, X, y):
         X_train_, X_val_, y_train_, y_val_ = train_test_split(
@@ -117,7 +119,7 @@ class PCHazardEstimator(tt.Model):
             dropout=self.dropout)
 
         self.optimizer = tt.optim.AdamWR(
-            lr=0.01, decoupled_weight_decay=0.01, cycle_eta_multiplier=0.8
+            lr=self.lr, decoupled_weight_decay=0.01, cycle_eta_multiplier=0.8
         )
 
         self.model = PCHazard(
@@ -134,6 +136,7 @@ class PCHazardEstimator(tt.Model):
             verbose=self.verbose,
             val_data=(X_val, y_val),
         )
+        return self
 
     def predict_survival_function(self, X):
         X_ = get_x(X)
@@ -145,12 +148,9 @@ class PCHazardEstimator(tt.Model):
         self.times_ = df_pred.index.values
         y_pred = np.swapaxes(df_pred.values, 0, 1)
         y_pred = y_pred[:, None, :]
-        print(y_pred.shape)
         cif_pred = 1 - y_pred.sum(axis=1)
-        print(cif_pred.shape)
         cif_pred = cif_pred[:, None, :]
         y_pred = np.concatenate((y_pred, cif_pred), axis=1)
-        print(y_pred.shape)
 
         all_event_y_pred = []
 
@@ -163,7 +163,6 @@ class PCHazardEstimator(tt.Model):
         
             y_pred_t_max = event_pred[:, [-1]]
             event_pred = np.hstack([y_pred_at_0, event_pred, y_pred_t_max])
-
 
             if times is None:
                 times = self.times_
@@ -231,12 +230,12 @@ class PCHazardEstimator(tt.Model):
         del deep
         out = dict()
         out["num_durations"] = self.num_durations
-        out["num_nodes_shared"] = self.num_nodes_shared
-        out["num_nodes_indiv"] = self.num_nodes_indiv
+        #out["num_nodes_shared"] = self.num_nodes_shared
+        #out["num_nodes_indiv"] = self.num_nodes_indiv
         out["batch_norm"] = self.batch_norm
         out["dropout"] = self.dropout
-        out["alpha"] = self.alpha
-        out["sigma"] = self.sigma
+        #out["alpha"] = self.alpha
+        #out["sigma"] = self.sigma
         out["optimizer"] = self.optimizer
         out["batch_size"] = self.batch_size
         out["epochs"] = self.epochs

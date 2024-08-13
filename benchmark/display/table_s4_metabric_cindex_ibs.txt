@@ -1,8 +1,0 @@
-\begin{tabular}{lllll}
- & model_name & MSE & MAE & AUC \\
-0 & DQS & 17138.2 ± 1429.4 & 97.8 ± 1.8 & 0.6744 ± 0.0151 \\
-1 & SurvTRACE & 22667.8 ± 3985.1 & 114.9 ± 10.2 & 0.6788 ± 0.0133 \\
-2 & Random Survival Forests & 15187.3 ± 1427.5 & 94.5 ± 1.1 & \font-weightbold 0.7022 ± 0.0127 \\
-3 & Gradient Boosting Survival & \text-decorationunderline 14265.3 ± 2025.0 & \text-decorationunderline 91.6 ± 3.4 & 0.6896 ± 0.0123 \\
-4 &  MultiIncidence & \font-weightbold 14149.9 ± 1650.6 & \font-weightbold 91.0 ± 2.5 & \text-decorationunderline 0.6986 ± 0.0122 \\
-\end{tabular}

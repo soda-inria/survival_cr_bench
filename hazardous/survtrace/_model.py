@@ -73,6 +73,7 @@ class SurvTRACE(NeuralNet):
         quantile_horizons=None,
         batch_size=1024,
         lr=1e-3,
+        patience=5,
         optimizer__weight_decay=0,
         device="cpu",
         max_epochs=100,
@@ -120,7 +121,7 @@ class SurvTRACE(NeuralNet):
             callbacks = [
                 ShapeSetter(),
                 ProgressBar(detect_notebook=False),
-                EarlyStopping(monitor="valid_loss", patience=5, threshold=0.001),
+                EarlyStopping(monitor="valid_loss", patience=patience, threshold=0.001),
             ]
 
         super().__init__(

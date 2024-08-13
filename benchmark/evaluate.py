@@ -8,6 +8,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split
 
 from sksurv.metrics import concordance_index_ipcw
+
 # Used for mse, mae and d-calibration
 from SurvivalEVAL import SurvivalEvaluator
 
@@ -331,18 +332,32 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=Tru
         )
         mse = evaluator.mse(method="Pseudo_obs")
         mae = evaluator.mae(method="Pseudo_obs")
-        auc = evaluator.auc() 
+        auc = evaluator.auc()
+        target_time = time_grid[len(time_grid) // 2]
+        one_calibration = evaluator.one_calibration(target_time)[0]
+        d_calibration = evaluator.d_calibration()[0]
+        km_calibration = evaluator.km_calibration()
+        x_calibration = evaluator.x_calibration()
+
         scores.update(
             dict(
                 mse=mse,
                 mae=mae,
                 auc=auc,
+                one_calibration=one_calibration,
+                d_calibration=d_calibration,
+                km_calibration=km_calibration,
+                x_calibration=x_calibration,
             )
         )
         if verbose:
             print(f"{mse=}")
             print(f"{mae=}")
             print(f"{auc=}")
+            print(f"{one_calibration=}")
+            print(f"{d_calibration=}")
+            print(f"{km_calibration=}")
+            print(f"{x_calibration=}")
 
     if verbose:
         print(f"{event_specific_ibs=}")
@@ -526,8 +541,16 @@ def _agg_survival(scores, already_aggregated=False):
         mean_censlog=np.mean(censlog).round(4),
         std_cenlog=np.std(censlog).round(4),
     )
-    
-    for metric in ["auc", "mse", "mae"]:        
+
+    for metric in [
+        "auc",
+        "mse",
+        "mae",
+        "one_calibration",
+        "d_calibration",
+        "km_calibration",
+        "x_calibration",
+    ]:
         if already_aggregated:
             metric_to_aggregate = f"mean_{metric}"
         else:
@@ -535,10 +558,12 @@ def _agg_survival(scores, already_aggregated=False):
 
         metrics = [score.get(metric_to_aggregate, np.nan) for score in scores]
 
-        agg_survival_score.update({
-            f"mean_{metric}": np.nanmean(metrics),
-            f"std_{metric}": np.nanstd(metrics),
-        })
+        agg_survival_score.update(
+            {
+                f"mean_{metric}": np.nanmean(metrics),
+                f"std_{metric}": np.nanstd(metrics),
+            }
+        )
 
     return agg_survival_score
 
@@ -568,7 +593,11 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
     for score in model_scores:
         mse = None
         mae = None
+        auc = None
+        one_calibration = None
         d_calibration = None
+        km_calibration = None
+        x_calibration = None
         if "y_pred" in score:
             y_pred_survival = np.asarray(score["y_pred"])[0, :, :]
             time_grid = np.asarray(score["time_grid"])
@@ -589,12 +618,21 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
             mse = evaluator.mse(method="Pseudo_obs")
             mae = evaluator.mae(method="Pseudo_obs")
             auc = evaluator.auc()
+            target_time = time_grid[len(time_grid) // 2]
+            one_calibration = evaluator.one_calibration(target_time)[0]
+            d_calibration = evaluator.d_calibration()[0]
+            km_calibration = evaluator.km_calibration()
+            x_calibration = evaluator.x_calibration()
 
         score.update(
             dict(
                 mse=mse,
                 mae=mae,
                 auc=auc,
+                one_calibration=one_calibration,
+                d_calibration=d_calibration,
+                km_calibration=km_calibration,
+                x_calibration=x_calibration,
             )
         )
         print(
@@ -602,6 +640,10 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
                 mse=mse,
                 mae=mae,
                 auc=auc,
+                one_calibration=one_calibration,
+                d_calibration=d_calibration,
+                km_calibration=km_calibration,
+                x_calibration=x_calibration,
             )
         )
 
@@ -612,8 +654,8 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    # evaluate_all_models(include_models=["deephit"], include_datasets=["metabric"])
-    # compute_additional_survival_metrics_from_raw("dqs", "support")
-    standalone_aggregate("dqs", "metabric", already_aggregated=False)
+    # evaluate_all_models(include_models=["pchazard"], include_datasets=["metabric"])
+    # compute_additional_survival_metrics_from_raw("sumonet", "metabric")
+    standalone_aggregate("pchazard", "metabric", already_aggregated=False)
 
 # %%

@@ -4,6 +4,8 @@ from hazardous._deep_hit import DeepHitEstimator
 from hazardous._gb_multi_incidence import GBMultiIncidence
 from hazardous._aalen_johansen import AalenJohansenEstimator
 from hazardous._sksurv_boosting import SksurvBoosting
+from hazardous._pc_hazard import PCHazardEstimator
+from hazardous._kaplan_meier import KaplanMeierEstimator
 from hazardous.utils import CumulativeIncidencePipeline
 
 
@@ -103,6 +105,19 @@ def init_sksurv_boosting(random_state=None, **model_params):
     ).set_params(**model_params)
 
 
+def init_pchazard(random_state=None, **model_params):
+    return CumulativeIncidencePipeline(
+        [
+            ("encoder", SurvFeatureEncoder()),
+            ("estimator", PCHazardEstimator())
+        ]
+    ).set_params(**model_params)
+
+
+def init_kaplan_meier(random_state, **model_params):
+    return KaplanMeierEstimator()
+
+
 INIT_MODEL_FUNCS = {
     "gbmi": init_gbmi,
     "survtrace": init_survtrace,
@@ -111,5 +126,6 @@ INIT_MODEL_FUNCS = {
     "aalen_johansen": init_aalen_johansen,
     "random_survival_forest": init_random_survival_forest,
     "sksurv_boosting": init_sksurv_boosting,
-    # TODO: "init_pchazard"
+    "pchazard": init_pchazard,
+    "kaplan_meier": init_kaplan_meier,
 }

@@ -23,11 +23,11 @@ from _dataset import LOAD_DATASET_FUNCS
 #     "estimator__n_iter_before_feedback": randint(5, 50),
 # }
 gbmi_param_grid = {
-    "estimator__learning_rate": [0.05],
+    "estimator__learning_rate": [0.02],
     "estimator__max_depth": [8],
     "estimator__n_iter": [100],
-    "estimator__n_times": [3],
-    "estimator__n_iter_before_feedback": [30],
+    "estimator__n_times": [1],
+    "estimator__n_iter_before_feedback": [50],
 }
 
 # survtrace_grid = {
@@ -35,15 +35,16 @@ gbmi_param_grid = {
 #     "batch_size": [256, 512, 1024],
 # }
 survtrace_grid = {
-    "lr": [0.001],
-    "batch_size": [256],
+    "lr": [0.0005],
+    "batch_size": [128],
+    "patience": [10],
 }
 
 fine_and_gray_grid = {
     "estimator__max_samples": [10_000],
 }
 
-sksurv_boosting = {
+sksurv_boosting_grid = {
     "estimator__loss": ["coxph"],
     "estimator__learning_rate": loguniform(0.01, 0.1),
     "estimator__n_estimators": randint(50, 100),
@@ -53,6 +54,8 @@ sksurv_boosting = {
     "estimator__verbose": [1],
 }
 
+pc_hazard_grid = {}
+
 HYPER_PARAMS_GRID = {
     "gbmi": gbmi_param_grid,
     "survtrace": survtrace_grid,
@@ -60,7 +63,9 @@ HYPER_PARAMS_GRID = {
     "aalen_johansen": {},
     "deephit": {},
     "random_survival_forest": {},
-    "sksurv_boosting": sksurv_boosting,
+    "sksurv_boosting": sksurv_boosting_grid,
+    "pchazard": pc_hazard_grid,
+    "kaplan_meier": {},
 }
 
 DATASET_GRID = {
@@ -167,7 +172,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("metabric", "deephit")
+    search_all_dataset_params("metabric", "pchazard")
 
 
 # %%

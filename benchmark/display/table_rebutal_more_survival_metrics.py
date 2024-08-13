@@ -6,23 +6,23 @@ import pandas as pd
 
 
 model_remaming = {
+    "kaplan_meier": "Kaplan-Meier",
     "gbmi": " MultiIncidence",
     "survtrace": "SurvTRACE",
-    # "deephit": "DeepHit",
-    # "sumonet": "SumoNet",
+    "deephit": "DeepHit",
+    "sumonet": "SumoNet",
     "dqs": "DQS",
-    # "han-nll": "Han et al. (nll)",
-    # "han-bll_game": "Han et al. (bll_game)",
+    "han-bs_game": "Han et al. (bs_game)",
     "sksurv_boosting": "Gradient Boosting Survival",
     "random_survival_forest": "Random Survival Forests",
     # "fine_and_gray": "Fine & Gray",
     # "aalen_johansen": "Aalen Johansen",
-    # "pchazard": "PCHazard",
+    "pchazard": "PCHazard",
 }
 
 include_datasets = ["support", "metabric"]
-metabric_filename = "table_s4_metabric_cindex_ibs.txt"
-support_filename = "table_s5_suppport_cindex_ibs.txt"
+metabric_filename = "table_rebutal_more_survival_metrics_metabric.txt"
+support_filename = "table_rebutal_more_survival_metrics_support.txt"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -36,26 +36,44 @@ for path_model in path_scores.glob("*"):
         if not dataset_name in include_datasets:
             continue
         agg_result = json.load(open(path_dataset))
-        
-        mean_mse = round(agg_result["mean_mse"], 1)
-        std_mse = round(agg_result["std_mse"], 1)
-        mse = f"{mean_mse} ± {std_mse}"
 
-        mean_mae = round(agg_result["mean_mae"], 1)
-        std_mae = round(agg_result["std_mae"], 1)
-        mae = f"{mean_mae} ± {std_mae}"
-
-        mean_auc = round(agg_result["mean_auc"], 4)
-        std_auc = round(agg_result["std_auc"], 4)
-        auc = f"{mean_auc} ± {std_auc}"
+        mean_ibs = agg_result["event_specific_ibs"][0]["mean_ibs"]
+        std_ibs = agg_result["event_specific_ibs"][0]["std_ibs"]
+        ibs = f"{mean_ibs} ± {std_ibs}"
 
         result = {
             "dataset_name": dataset_name,
             "model_name": model_name,
-            "MSE": mse,
-            "MAE": mae,
-            "AUC": auc,
+            "ibs (↓)": ibs,
         }
+
+        for metric in [
+            "mse", "mae", "auc", "km_calibration", "x_calibration",
+            "d_calibration", "one_calibration",
+        ]:
+            mean = agg_result[f"mean_{metric}"]
+            std = agg_result[f"std_{metric}"]
+
+            if metric in ["mse", "mae"]:
+                value =  f"{mean:.1f} ± {std:.1f}"
+            elif metric == "d_calibration":
+                value = f"{mean:.3E} ± {std:.3E}"
+            elif "calibration" in metric:
+                value = f"{mean:.6f} ± {std:.6f}"
+            else:
+                value =  f"{mean:.4f} ± {std:.4f}" 
+
+            arrow = {
+                "mse": "↓",
+                "mae": "↓",
+                "auc": "↓",
+                "km_calibration": "↓",
+                "x_calibration": "↓",
+                "d_calibration": "↑",
+                "one_calibration": "↑",
+            }[metric]
+            metric_with_arrow = f"{metric} ({arrow})"            
+            result[metric_with_arrow] = value
 
         results.append(result)
 
@@ -64,12 +82,12 @@ df = pd.DataFrame(results)
 df["model_name"] = df["model_name"].map(model_remaming)
 
 order = {
-    # "DeepHit": 0,
-    # "PCHazard": 1,
-    # "Han et al. (nll)": 2,
-    # "Han et al. (bll_game)": 3,
+    "Kaplan-Meier": -1,
+    "DeepHit": 0,
+    "PCHazard": 1,
+    "Han et al. (bs_game)": 3,
     "DQS": 4,
-    # "SumoNet": 5,
+    "SumoNet": 5,
     "SurvTRACE": 6,
     "Random Survival Forests": 7,
     "Gradient Boosting Survival": 8,
@@ -94,9 +112,11 @@ def bold_and_underline(x):
     if x.name == "model_name":
         return style
     
-    means = [float(cell.split("±")[0]) for cell in x.values]
-    order = np.asarray(np.argsort(means))
-    if "C-index" in x.name or "AUC" in x.name:
+    means = [float(cell.split("±")[0]) for cell in x.values[1:]] # Exclude KM
+    order = np.asarray(np.argsort(means)) + 1
+    if x.name.split(" (")[0] not in [
+        "ibs", "mse", "mae", "x_calibration", "km_calibration"
+    ]:
         order = order[::-1]
     style[order[0]] = "font-weight: bold"
     style[order[1]] = "text-decoration: underline"
@@ -112,5 +132,11 @@ df_support_style = df_support.style.apply(bold_and_underline, axis=0)
 open(support_filename, "w").write(df_support_style.to_latex())
 df_support_style
 
+
+# %%
+
+print(df_support.to_markdown())
+# %%
+print(df_metabric.to_markdown())
 
 # %%
