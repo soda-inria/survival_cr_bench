@@ -10,6 +10,7 @@ from hazardous.metrics._brier_score import (
     integrated_brier_score_incidence,
     integrated_brier_score_incidence_oracle,
 )
+from hazardous.survtrace._encoder import SurvFeatureEncoder
 
 SEED = 0
 
@@ -82,7 +83,7 @@ class DeepHitEstimator(tt.Model):
         num_nodes_shared=[64, 64],
         num_nodes_indiv=[32],
         batch_size=256,
-        epochs=512,
+        epochs=100,
         callbacks=[tt.callbacks.EarlyStoppingCycle()],
         verbose=False,
         num_durations=10,
@@ -104,8 +105,12 @@ class DeepHitEstimator(tt.Model):
         self.verbose = verbose
 
     def fit(self, X, y):
+        
+        self.encoder = SurvFeatureEncoder()
+        X_trans = self.encoder.fit_transform(X)
+
         X_train_, X_val_, y_train_, y_val_ = train_test_split(
-            X, y, test_size=0.2, random_state=SEED
+            X_trans, y, test_size=0.2, random_state=SEED
         )
 
         X_train = get_x(X_train_)
@@ -139,6 +144,7 @@ class DeepHitEstimator(tt.Model):
 
         self.model = DeepHit(
             net=self.net,
+            device="mps",
             optimizer=self.optimizer,
             alpha=self.alpha,
             sigma=self.sigma,
@@ -156,11 +162,13 @@ class DeepHitEstimator(tt.Model):
         )
 
     def predict_survival_function(self, X):
-        X_ = get_x(X)
+        X_trans = self.encoder.transform(X)
+        X_ = get_x(X_trans)
         return self.model.predict_surv_df(X_)
 
     def predict_cumulative_incidence(self, X, times=None):
-        X_ = get_x(X)
+        X_trans = self.encoder.transform(X)
+        X_ = get_x(X_trans)
         y_pred = self.model.predict_cif(X_)
         y_pred = np.swapaxes(y_pred, 0, 2)
         y_pred = np.swapaxes(y_pred, 1, 2)
@@ -206,11 +214,13 @@ class DeepHitEstimator(tt.Model):
     
 
     def predict_proba(self, X):
-        X_ = get_x(X)
+        X_trans = self.encoder.transform(X)
+        X_ = get_x(X_trans)
         return self.model.predict_pmf(X_)
 
     def score(self, X, y, scale_censoring=None, shape_censoring=None):
-        X_ = get_x(X)
+        X_trans = self.encoder.transform(X)
+        X_ = get_x(X_trans)
         predicted_curves = self.model.predict_cif(X_)
         ibs_events = []
         for event in range(len(predicted_curves)):

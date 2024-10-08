@@ -7,12 +7,13 @@ import pandas as pd
 
 model_remaming = {
     "kaplan_meier": "Kaplan-Meier",
-    "gbmi": " MultiIncidence",
+    "gbmi": "SurvivalBoost",
     "survtrace": "SurvTRACE",
     "deephit": "DeepHit",
     "sumonet": "SumoNet",
     "dqs": "DQS",
-    "han-bs_game": "Han et al. (bs_game)",
+    "pchazard": "PCHazard",
+    "han-nll": "Han et al. (NLL)",
     "sksurv_boosting": "Gradient Boosting Survival",
     "random_survival_forest": "Random Survival Forests",
     # "fine_and_gray": "Fine & Gray",
@@ -20,9 +21,10 @@ model_remaming = {
     "pchazard": "PCHazard",
 }
 
-include_datasets = ["support", "metabric"]
+include_datasets = ["kkbox"] #, "support", "metabric"]
 metabric_filename = "table_rebutal_more_survival_metrics_metabric.txt"
 support_filename = "table_rebutal_more_survival_metrics_support.txt"
+kkbox_filename = "table_rebutal_more_survival_metrics_kkbox.txt"
 
 path_scores = Path("../scores/agg/")
 results = []
@@ -51,6 +53,8 @@ for path_model in path_scores.glob("*"):
             "mse", "mae", "auc", "km_calibration", "x_calibration",
             "d_calibration", "one_calibration",
         ]:
+            if f"mean_{metric}" not in agg_result:
+                continue
             mean = agg_result[f"mean_{metric}"]
             std = agg_result[f"std_{metric}"]
 
@@ -66,7 +70,7 @@ for path_model in path_scores.glob("*"):
             arrow = {
                 "mse": "↓",
                 "mae": "↓",
-                "auc": "↓",
+                "auc": "↑",
                 "km_calibration": "↓",
                 "x_calibration": "↓",
                 "d_calibration": "↑",
@@ -85,13 +89,13 @@ order = {
     "Kaplan-Meier": -1,
     "DeepHit": 0,
     "PCHazard": 1,
-    "Han et al. (bs_game)": 3,
+    "Han et al. (NLL)": 3,
     "DQS": 4,
     "SumoNet": 5,
     "SurvTRACE": 6,
     "Random Survival Forests": 7,
     "Gradient Boosting Survival": 8,
-    "MultiIncidence": 9,
+    "SurvivalBoost": 9,
 }
 df["order"] = df["model_name"].map(order)
 df = df.sort_values("order").drop("order", axis=1)
@@ -106,14 +110,20 @@ df_metabric = (
     .drop("dataset_name", axis=1)
     .reset_index(drop=True)
 )
+df_kkbox = (
+    df.query("dataset_name == 'kkbox'")
+    .drop("dataset_name", axis=1)
+    .reset_index(drop=True)
+)
+
 
 def bold_and_underline(x):
     style = [""] * len(x)
     if x.name == "model_name":
         return style
     
-    means = [float(cell.split("±")[0]) for cell in x.values[1:]] # Exclude KM
-    order = np.asarray(np.argsort(means)) + 1
+    means = [float(cell.split("±")[0]) for cell in x.values[0:]] # Exclude KM
+    order = np.asarray(np.argsort(means))
     if x.name.split(" (")[0] not in [
         "ibs", "mse", "mae", "x_calibration", "km_calibration"
     ]:
@@ -122,6 +132,15 @@ def bold_and_underline(x):
     style[order[1]] = "text-decoration: underline"
 
     return style
+
+
+df_kkbox_style = df_kkbox.style.apply(bold_and_underline, axis=0)
+open(kkbox_filename, "w").write(df_kkbox_style.to_latex())
+df_kkbox_style
+
+# %%
+
+# %%
 
 df_metabric_style = df_metabric.style.apply(bold_and_underline, axis=0)
 open(metabric_filename, "w").write(df_metabric_style.to_latex())
@@ -132,6 +151,9 @@ df_support_style = df_support.style.apply(bold_and_underline, axis=0)
 open(support_filename, "w").write(df_support_style.to_latex())
 df_support_style
 
+
+# %%
+print(df_kkbox.to_markdown())
 
 # %%
 

@@ -87,8 +87,8 @@ DATASET_GRID = {
         "random_state": range(5),
     },
     "kkbox": {
-        "random_state": range(5),
-        "n_samples": [1_000_000],
+        "random_state": range(3),
+        "n_samples": [100_000],
     }
 }
 
@@ -172,7 +172,7 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("metabric", "pchazard")
+    search_all_dataset_params("kkbox", "pchazard")
 
 
 # %%

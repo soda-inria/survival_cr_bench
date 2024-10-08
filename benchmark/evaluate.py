@@ -30,7 +30,7 @@ from hyper_parameter_search import PATH_HP_SEARCH
 DEBUG_N_SUBSAMPLE = None
 PATH_SCORES = Path("scores/")
 N_STEPS_TIME_GRID = 20
-N_TEST_C_INDEX = None
+N_TEST_C_INDEX = 10_000
 
 
 def evaluate_all_models(include_models=None, include_datasets=None, verbose=True):
@@ -174,10 +174,10 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=Tru
     if verbose:
         print("Computing Brier scores, IBS and C-index")
 
-    y_train_binary = y_train.copy()
-    y_test_binary = y_test.copy()
-
     for event_id in range(1, n_events + 1):
+
+        y_train_binary = y_train.copy()
+        y_test_binary = y_test.copy()
 
         # Brier score and IBS
         if dataset_name == "weibull":
@@ -236,7 +236,7 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=Tru
 
         y_pred_c_index = y_pred.copy()
 
-        if N_TEST_C_INDEX is not None:
+        if N_TEST_C_INDEX is not None and N_TEST_C_INDEX < y_test_binary.shape[0]:
             y_test_binary = y_test_binary.reset_index(drop=True)
             y_test_binary, _ = train_test_split(
                 y_test_binary,
@@ -323,10 +323,10 @@ def evaluate(model, bunch, dataset_name, dataset_params, model_name, verbose=Tru
 
         # mse, mae and d-calibration
         evaluator = SurvivalEvaluator(
-            predicted_survival_curves=y_pred[0, :, :],
+            predicted_survival_curves=y_pred_c_index[0, :, :],
             time_coordinates=time_grid,
-            test_event_indicators=y_test["event"].to_numpy(),
-            test_event_times=y_test["duration"].to_numpy(),
+            test_event_indicators=y_test_binary["event"].to_numpy(),
+            test_event_times=y_test_binary["duration"].to_numpy(),
             train_event_indicators=y_train["event"].to_numpy(),
             train_event_times=y_train["duration"].to_numpy(),
         )
@@ -583,7 +583,9 @@ def standalone_aggregate(model_name, dataset_name, already_aggregated=False):
 
 def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
 
-    options = ["metabric", "support"]
+    options = [
+        "metabric", "support", "kkbox", "kkbox_1M", "kkbox_2M", "kkbox_100k"
+    ]
     if not dataset_name in options:
         raise ValueError(f"'dataset_name' must be one of {options}, got {dataset_name}")
 
@@ -654,8 +656,9 @@ def compute_additional_survival_metrics_from_raw(model_name, dataset_name):
 # %%
 
 if __name__ == "__main__":
-    # evaluate_all_models(include_models=["pchazard"], include_datasets=["metabric"])
-    # compute_additional_survival_metrics_from_raw("sumonet", "metabric")
-    standalone_aggregate("pchazard", "metabric", already_aggregated=False)
+    evaluate_all_models(include_models=["deephit"], include_datasets=["kkbox"])
+    # compute_additional_survival_metrics_from_raw("survtrace", "kkbox")
+    # standalone_aggregate("han-nll", "kkbox", already_aggregated=False)
+
 
 # %%

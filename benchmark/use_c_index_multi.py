@@ -1,5 +1,10 @@
 # %%
+"""
+This script adds the multi risk c-index in the aggregated score, for the SEER dataset.
+This uses the y_pred from the raw scores to make a prediction.
+"""
 import json
+import warnings
 from pathlib import Path
 import numpy as np
 from tqdm import tqdm
@@ -24,7 +29,13 @@ def compute_c_index_multi_risk(model_dataset_path):
         y_pred = np.transpose(y_pred, (1, 0, 2))
 
         random_state = seed_data["random_state"]
-        bunch = get_split_seer(dict(random_state=random_state))
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            bunch = get_split_seer(
+                dict(random_state=random_state),
+                dropna=False,
+            )
 
         if (
             N_TEST_C_INDEX is not None
@@ -75,23 +86,21 @@ def compute_c_index_multi_risk(model_dataset_path):
     return agg_results
 
 
-def add_c_index_multi_to_agg():
-    model_paths = [
-       path for path in Path("scores/raw/").glob("*")
-        if (path / "seer.json").exists() and not "deephit" in str(path)
-    ]
-    for model_path in model_paths:
-        print(f"--- {model_path} ---")
-        c_index_multi = compute_c_index_multi_risk(model_path / "seer.json")
+def add_c_index_multi_to_agg(model_name):
+    model_path = Path("scores/raw") / model_name / "seer.json"
 
-        model = model_path.name
-        path_agg = Path("scores/agg") / model / "seer.json"
-        agg_results = json.load(open(path_agg))
-        agg_results["c_index_multi"] = c_index_multi
-        
-        json.dump(agg_results, open(path_agg, "w"))
-        print(f"Wrote {path_agg}")
+    print(f"--- {model_path} ---")
+    c_index_multi = compute_c_index_multi_risk(model_path)
 
+    path_agg = Path("scores/agg") / model_name / "seer.json"
+    agg_results = json.load(open(path_agg))
+    agg_results["c_index_multi"] = c_index_multi
+    
+    json.dump(agg_results, open(path_agg, "w"))
+    print(f"Wrote {path_agg}")
 
-add_c_index_multi_to_agg()
 # %%
+
+if __name__ == "__main__":
+    add_c_index_multi_to_agg("deephit")
+

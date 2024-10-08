@@ -12,13 +12,16 @@ PATH_SEER = "../hazardous/data/seer_cancer_cardio_raw_data.txt"
 PATH_CHURN = "../hazardous/data/churn.csv"
 
 
-def get_split_seer(dataset_params):
+def get_split_seer(dataset_params, dropna=False):
     bunch = load_seer(
         PATH_SEER,
         survtrace_preprocessing=True,
         return_X_y=False,
     )
     X, y = bunch.X, bunch.y
+    if dropna:
+        X = X.dropna()
+        y = y.iloc[X.index]
     column_names = CATEGORICAL_COLUMN_NAMES + NUMERIC_COLUMN_NAMES
     X = X[column_names]
     return split(X, y, dataset_params)

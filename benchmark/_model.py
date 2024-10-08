@@ -39,6 +39,8 @@ def init_survtrace(
         lr=lr,
         optimizer__weight_decay=0,
         max_epochs=max_epochs,
+        device="mps",
+        patience=2,
         **model_params,
     )
 
