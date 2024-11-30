@@ -42,12 +42,23 @@ for path_model in path_scores.glob("*"):
         mean_ibs = agg_result["event_specific_ibs"][0]["mean_ibs"]
         std_ibs = agg_result["event_specific_ibs"][0]["std_ibs"]
         ibs = f"{mean_ibs} ± {std_ibs}"
+        
+        mean_cenlog = agg_result["mean_censlog"]
+        std_cenlog = agg_result["std_cenlog"]
+        censlog = f"{mean_cenlog} ± {std_cenlog}"
 
         result = {
             "dataset_name": dataset_name,
             "model_name": model_name,
             "ibs (↓)": ibs,
+            "S-cen-log-simple (↓)": censlog,
         }
+
+        for c_index_q in agg_result["c_index"]:
+            q = c_index_q["time_quantile"]
+            mean = c_index_q["mean_c_index"][0]
+            std = c_index_q["std_c_index"][0]
+            result[f"C-index {q}"] = f"{mean} ± {std}"
 
         for metric in [
             "mse", "mae", "auc", "km_calibration", "x_calibration",
@@ -125,7 +136,7 @@ def bold_and_underline(x):
     means = [float(cell.split("±")[0]) for cell in x.values[0:]] # Exclude KM
     order = np.asarray(np.argsort(means))
     if x.name.split(" (")[0] not in [
-        "ibs", "mse", "mae", "x_calibration", "km_calibration"
+        "ibs", "S-cen-log-simple", "mse", "mae", "x_calibration", "km_calibration"
     ]:
         order = order[::-1]
     style[order[0]] = "font-weight: bold"
@@ -138,7 +149,6 @@ df_kkbox_style = df_kkbox.style.apply(bold_and_underline, axis=0)
 open(kkbox_filename, "w").write(df_kkbox_style.to_latex())
 df_kkbox_style
 
-# %%
 
 # %%
 

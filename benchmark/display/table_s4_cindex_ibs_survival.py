@@ -119,5 +119,4 @@ df_support_style = df_support.style.apply(bold_and_underline, axis=0)
 open(support_filename, "w").write(df_support_style.to_latex())
 df_support_style
 
-
 # %%
