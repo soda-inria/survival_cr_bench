@@ -19,6 +19,7 @@ model_remaming = {
     "random_survival_forest": "RandomSurvivalForest",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
+    "xgbse": "XGBSE Debiased BCE",
     "pchazard": "PCHazard",
 }
 include_datasets = ["support", "metabric"]

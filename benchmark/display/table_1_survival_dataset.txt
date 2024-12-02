@@ -2,11 +2,15 @@
 dataset_name & \multicolumn{2}{r}{METABRIC} & \multicolumn{2}{r}{SUPPORT} \\
  & IBS & Cen-log-simple & IBS & Cen-log-simple \\
 model_name &  &  &  &  \\
+Random Survival Forests & \font-weightbold 0.165 ± 0.008 & \font-weightbold 0.181 ± 0.004 & \font-weightbold 1.937 ± 0.013 & \font-weightbold 1.539 ± 0.019 \\
+DeepHit & 0.171 ± 0.009 & 0.206 ± 0.006 & 2.039 ± 0.021 & 1.771 ± 0.03 \\
+PCHazard & 0.169 ± 0.011 & 0.187 ± 0.004 & 1.98 ± 0.012 & 1.673 ± 0.024 \\
 Han et al. (nll) & 0.189 ± 0.006 & 0.252 ± 0.005 & 2.559 ± 0.168 & 3.376 ± 0.201 \\
 Han et al. (game) & 0.191 ± 0.011 & 0.254 ± 0.004 & 2.541 ± 0.142 & 3.343 ± 0.207 \\
-DQS & 0.173 ± 0.018 & 0.202 ± 0.005 & 2.223 ± 0.04 & 2.586 ± 0.023 \\
-SumoNet & 0.177 ± 0.008 & 0.195 ± 0.005 & 2.271 ± 0.052 & 1.822 ± 0.023 \\
-SurvTRACE & 0.191 ± 0.022 & 0.188 ± 0.005 & 2.114 ± 0.148 & 1.61 ± 0.021 \\
-Gradient Boosting Survival & \font-weightbold 0.169 ± 0.011 & \text-decorationunderline 0.187 ± 0.004 & \text-decorationunderline 1.974 ± 0.024 & \text-decorationunderline 1.575 ± 0.016 \\
-MultiIncidence & \text-decorationunderline 0.171 ± 0.013 & \font-weightbold 0.183 ± 0.004 & \font-weightbold 1.968 ± 0.027 & \font-weightbold 1.528 ± 0.018 \\
+DQS & 0.172 ± 0.018 & 0.203 ± 0.004 & 2.2 ± 0.05 & 2.764 ± 0.38 \\
+SumoNet & 0.17 ± 0.01 & 0.194 ± 0.006 & 2.197 ± 0.03 & 1.817 ± 0.026 \\
+SurvTRACE & 0.172 ± 0.006 & 0.188 ± 0.004 & 1.987 ± 0.018 & 1.606 ± 0.02 \\
+Gradient Boosting Survival & 0.169 ± 0.011 & 0.187 ± 0.004 & \text-decorationunderline 1.974 ± 0.024 & 1.575 ± 0.016 \\
+XGBSE Debiased BCE & 0.172 ± 0.01 & 0.191 ± 0.004 & 1.976 ± 0.016 & 2.745 ± 0.04 \\
+MultiIncidence & \text-decorationunderline 0.168 ± 0.012 & \text-decorationunderline 0.181 ± 0.005 & 2.027 ± 0.028 & \text-decorationunderline 1.569 ± 0.024 \\
 \end{tabular}

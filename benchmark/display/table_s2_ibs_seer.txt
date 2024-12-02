@@ -4,9 +4,11 @@ Event & 1 & 2 & 3 \\
 model_name &  &  &  \\
 Aalen Johansen & 0.1155 ± 0.0002 & 0.0313 ± 0.0001 & 0.0879 ± 0.0004 \\
 Fine & Gray & 0.1039 ± 0.0004 & 0.0313 ± 0.0001 & 0.0865 ± 0.0004 \\
-Random Survival Forests & \text-decorationunderline 0.086 ± 0.0004 & \text-decorationunderline 0.0308 ± 0.0002 & \text-decorationunderline 0.0828 ± 0.0004 \\
+Random Survival Forests & \text-decorationunderline 0.086 ± 0.0004 & \text-decorationunderline 0.0308 ± 0.0002 & 0.0828 ± 0.0004 \\
+DeepHit & 0.0936 ± 0.0003 & 0.0328 ± 0.0002 & \text-decorationunderline 0.082 ± 0.0004 \\
 DSM & 0.0892 ± 0.0008 & 0.0321 ± 0.0002 & 0.0867 ± 0.0005 \\
+Cox Boost & 0.1157 ± 0.0002 & 0.0314 ± 0.0001 & 0.0881 ± 0.0002 \\
 DeSurv & 0.0958 ± 0.0009 & 0.0312 ± 0.0001 & 0.0842 ± 0.0005 \\
-SurvTRACE & 0.0884 ± 0.0006 & 0.033 ± 0.0003 & 0.0873 ± 0.0006 \\
+SurvTRACE & 0.0878 ± 0.0001 & 0.0336 ± 0.0004 & 0.0887 ± 0.0004 \\
 MultiIncidence & \font-weightbold 0.0847 ± 0.0002 & \font-weightbold 0.0303 ± 0.0001 & \font-weightbold 0.0792 ± 0.0003 \\
 \end{tabular}

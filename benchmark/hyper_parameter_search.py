@@ -1,6 +1,7 @@
 # %%
 import json
 from pathlib import Path
+from itertools import product
 from scipy.stats import loguniform, randint
 from sklearn.model_selection import (
     RandomizedSearchCV,
@@ -56,6 +57,24 @@ sksurv_boosting_grid = {
 
 pc_hazard_grid = {}
 
+cox_boost_grid = {
+    "estimator__stepno": randint(50, 200),
+    "estimator__penalty": randint(1, 20),
+    "estimator__scheme": ["linear", "sigmoid"],
+    "estimator__criterion": ['score', 'pscore'],
+}
+
+xgbse_grid = {
+    "estimator__lr_params": [{"C": c} for c in [.01, .1, 1., 10.]],
+    "estimator__xgb_params": [
+        {"eta": eta, "max_depth": max_depth}
+        for eta, max_depth in product([.01, .05, 0.1, 0.3, 0.5], [4, 5, 6])
+    ],
+    "estimator__num_boost_round": randint(5, 80),
+    "estimator__early_stopping_rounds": [None, 5],
+}
+
+
 HYPER_PARAMS_GRID = {
     "gbmi": gbmi_param_grid,
     "survtrace": survtrace_grid,
@@ -66,6 +85,8 @@ HYPER_PARAMS_GRID = {
     "sksurv_boosting": sksurv_boosting_grid,
     "pchazard": pc_hazard_grid,
     "kaplan_meier": {},
+    "cox_boost": cox_boost_grid,
+    "xgbse": xgbse_grid,
 }
 
 DATASET_GRID = {
@@ -94,9 +115,9 @@ DATASET_GRID = {
 
 PATH_HP_SEARCH = Path("./best_hyper_parameters")
 
-SEARCH_HP = False
-N_ITER_OUTER_LOOP_CV = 10
-N_ITER_INNER_LOOP_CV = 5
+SEARCH_HP = True
+N_ITER_OUTER_LOOP_CV = 20
+N_ITER_INNER_LOOP_CV = 3
 N_JOBS_CV = None
 
 
@@ -172,7 +193,8 @@ def search_hp(dataset_name, dataset_params, model_name):
 
 # %%
 if __name__ == "__main__":
-    search_all_dataset_params("kkbox", "pchazard")
+    search_all_dataset_params("kkbox", "xgbse")
+
 
 
 # %%

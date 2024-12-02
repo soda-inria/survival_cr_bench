@@ -18,6 +18,7 @@ model_remaming = {
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
     "pchazard": "PCHazard",
+    "xgbse": "XGBSE Debiased BCE",
 }
 
 include_datasets = ["support", "metabric"]
@@ -45,7 +46,7 @@ for path_model in path_scores.glob("*"):
         ibs = f"{mean_ibs} ± {std_ibs}"
 
         mean_censlog = round(agg_result["mean_censlog"], 3)
-        std_censlog = round(agg_result["std_censlog"], 3)
+        std_censlog = round(agg_result.get("std_censlog") or agg_result.get("std_cenlog"), 3)
         censlog = f"{mean_censlog} ± {std_censlog}"
 
         results.append(
@@ -74,7 +75,8 @@ order = {
     "SumoNet": 5,
     "SurvTRACE": 6,
     "Gradient Boosting Survival": 7,
-    "MultiIncidence": 8,
+    "XGBSE Debiased BCE": 8,
+    "MultiIncidence": 9,
 }
 df = df.sort_index(key=lambda x: x.map(order))
 

@@ -14,6 +14,7 @@ model_remaming = {
     "random_survival_forest": "Random Survival Forests",
     "fine_and_gray": "Fine & Gray",
     "aalen_johansen": "Aalen Johansen",
+    "cox_boost": "Cox Boost",
 }
 
 include_datasets = ["seer"]
@@ -57,9 +58,10 @@ order = {
     "Random Survival Forests": 2,
     "DeepHit": 3,
     "DSM": 4,
-    "DeSurv": 5,
-    "SurvTRACE": 6,
-    "MultiIncidence": 7,
+    "Cox Boost": 5,
+    "DeSurv": 6,
+    "SurvTRACE": 7,
+    "MultiIncidence": 8,
 }
 df = df.sort_index(key=lambda x: x.map(order))
 

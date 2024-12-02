@@ -16,6 +16,7 @@ model_remaming = {
     "random_survival_forest": "RSF (CPU)",
     "fine_and_gray": "Fine & Gray (CPU)",
     "aalen_johansen": "Aalen Johansen (CPU)",
+    "cox_boost": "Cox Boost (CPU)"
 }
 include_datasets = ["seer"]
 filename = "figure_02_seer_fit_time_vs_ibs.png"
@@ -58,7 +59,8 @@ hue_order = [
     "SurvTRACE (GPU)",
     "DeepHit (GPU)",
     "DSM (CPU)",
-    "DeSurv (CPU)", 
+    "DeSurv (CPU)",
+    "Cox Boost (CPU)",
     "RSF (CPU)",
     "Fine & Gray (CPU)",
     "Aalen Johansen (CPU)",

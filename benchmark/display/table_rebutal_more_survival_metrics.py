@@ -13,15 +13,16 @@ model_remaming = {
     "sumonet": "SumoNet",
     "dqs": "DQS",
     "pchazard": "PCHazard",
-    "han-nll": "Han et al. (NLL)",
+    #"han-nll": "Han et al. (NLL)",
     "sksurv_boosting": "Gradient Boosting Survival",
     "random_survival_forest": "Random Survival Forests",
     # "fine_and_gray": "Fine & Gray",
     # "aalen_johansen": "Aalen Johansen",
     "pchazard": "PCHazard",
+    "xgbse": "XGBSE Debiased BCE",
 }
 
-include_datasets = ["kkbox"] #, "support", "metabric"]
+include_datasets = ["support", "metabric"] #, "kkbox", "metabric"]
 metabric_filename = "table_rebutal_more_survival_metrics_metabric.txt"
 support_filename = "table_rebutal_more_survival_metrics_support.txt"
 kkbox_filename = "table_rebutal_more_survival_metrics_kkbox.txt"
@@ -44,7 +45,7 @@ for path_model in path_scores.glob("*"):
         ibs = f"{mean_ibs} ± {std_ibs}"
         
         mean_cenlog = agg_result["mean_censlog"]
-        std_cenlog = agg_result["std_cenlog"]
+        std_cenlog = agg_result.get("std_cenlog") or agg_result.get("std_censlog")
         censlog = f"{mean_cenlog} ± {std_cenlog}"
 
         result = {
@@ -106,7 +107,8 @@ order = {
     "SurvTRACE": 6,
     "Random Survival Forests": 7,
     "Gradient Boosting Survival": 8,
-    "SurvivalBoost": 9,
+    "XGBSE Debiased BCE": 9,
+    "SurvivalBoost": 10,
 }
 df["order"] = df["model_name"].map(order)
 df = df.sort_values("order").drop("order", axis=1)
@@ -133,7 +135,11 @@ def bold_and_underline(x):
     if x.name == "model_name":
         return style
     
-    means = [float(cell.split("±")[0]) for cell in x.values[0:]] # Exclude KM
+    means = [
+        float(cell.split("±")[0])
+        if cell is not np.nan else np.nan
+        for cell in x.values[0:]
+    ] # Exclude KM
     order = np.asarray(np.argsort(means))
     if x.name.split(" (")[0] not in [
         "ibs", "S-cen-log-simple", "mse", "mae", "x_calibration", "km_calibration"
@@ -148,7 +154,6 @@ def bold_and_underline(x):
 df_kkbox_style = df_kkbox.style.apply(bold_and_underline, axis=0)
 open(kkbox_filename, "w").write(df_kkbox_style.to_latex())
 df_kkbox_style
-
 
 # %%
 

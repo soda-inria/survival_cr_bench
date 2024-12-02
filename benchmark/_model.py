@@ -5,7 +5,9 @@ from hazardous._gb_multi_incidence import GBMultiIncidence
 from hazardous._aalen_johansen import AalenJohansenEstimator
 from hazardous._sksurv_boosting import SksurvBoosting
 from hazardous._pc_hazard import PCHazardEstimator
+from hazardous._cox_boost import CoxBoost
 from hazardous._kaplan_meier import KaplanMeierEstimator
+from hazardous._xgbse import XGBSE
 from hazardous.utils import CumulativeIncidencePipeline
 
 
@@ -107,6 +109,15 @@ def init_sksurv_boosting(random_state=None, **model_params):
     ).set_params(**model_params)
 
 
+def init_cox_boost(random_state, **model_params):
+    return CumulativeIncidencePipeline(
+        [
+            ("encoder", SurvFeatureEncoder()),
+            ("estimator", CoxBoost(random_state=random_state))
+        ]
+    ).set_params(**model_params)
+
+
 def init_pchazard(random_state=None, **model_params):
     return CumulativeIncidencePipeline(
         [
@@ -120,6 +131,15 @@ def init_kaplan_meier(random_state, **model_params):
     return KaplanMeierEstimator()
 
 
+def init_xgbse(random_state, **model_params):
+    return CumulativeIncidencePipeline(
+        [
+            ("encoder", SurvFeatureEncoder()),
+            ("estimator", XGBSE())
+        ]
+    ).set_params(**model_params)
+
+
 INIT_MODEL_FUNCS = {
     "gbmi": init_gbmi,
     "survtrace": init_survtrace,
@@ -130,4 +150,6 @@ INIT_MODEL_FUNCS = {
     "sksurv_boosting": init_sksurv_boosting,
     "pchazard": init_pchazard,
     "kaplan_meier": init_kaplan_meier,
+    "cox_boost": init_cox_boost,
+    "xgbse": init_xgbse,
 }

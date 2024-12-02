@@ -1,0 +1,1 @@
+{"model_name": "xgbse", "random_state": 1, "estimator__early_stopping_rounds": null, "estimator__lr_params": {"C": 0.01}, "estimator__num_boost_round": 35, "estimator__xgb_params": {"eta": 0.05, "max_depth": 5}}
